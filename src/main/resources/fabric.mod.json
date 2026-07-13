@@ -1,0 +1,35 @@
+{
+	"schemaVersion": 1,
+	"id": "simple_musicbox",
+	"version": "${version}",
+	"name": "Simple MusicBox",
+	"description": "Turn the jukebox into a music player: download tracks from YouTube links (/music), play them with a full GUI (queue, pause, skip, loop) and positional audio for everyone nearby. The YouTube extractor updates itself.",
+	"authors": [
+		"Duck"
+	],
+	"contact": {},
+	"license": "Apache-2.0",
+	"icon": "assets/simple_musicbox/icon.png",
+	"environment": "*",
+	"entrypoints": {
+		"main": [
+			"com.duck.simplemusicbox.SimpleMusicBox"
+		],
+		"client": [
+			"com.duck.simplemusicbox.client.SimpleMusicBoxClient"
+		]
+	},
+	"mixins": [
+		"simple_musicbox.mixins.json",
+		{
+			"config": "simple_musicbox.client.mixins.json",
+			"environment": "client"
+		}
+	],
+	"depends": {
+		"fabricloader": ">=0.16.0",
+		"minecraft": "~1.21.1",
+		"java": ">=21",
+		"fabric-api": "*"
+	}
+}

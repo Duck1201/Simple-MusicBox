@@ -1,0 +1,126 @@
+plugins {
+	id 'fabric-loom' version '1.10.5'
+	id 'com.gradleup.shadow' version '8.3.9'
+}
+
+version = project.mod_version
+group = project.maven_group
+
+base {
+	archivesName = project.archives_base_name
+}
+
+repositories {
+	mavenCentral()
+	maven {
+		name = 'Lavalink'
+		url = 'https://maven.lavalink.dev/releases'
+	}
+}
+
+loom {
+	splitEnvironmentSourceSets()
+
+	runs {
+		client {
+			// Em sistemas com /tmp noexec o LWJGL não consegue carregar os natives dali
+			vmArg "-Dorg.lwjgl.system.SharedLibraryExtractPath=${System.getProperty('user.home')}/.gradle/tmp/lwjgl"
+			// ./gradlew runClient -Pquickplay=localhost:25565 conecta direto num servidor
+			if (project.hasProperty('quickplay')) {
+				programArgs '--quickPlayMultiplayer', project.getProperty('quickplay')
+			}
+		}
+	}
+
+	mods {
+		"simple_musicbox" {
+			sourceSet sourceSets.main
+			sourceSet sourceSets.client
+		}
+	}
+}
+
+configurations {
+	// Embutido no jar como classes (shadow): só o Concentus (Opus puro-Java,
+	// estável — usado pelo encode no servidor e pelo decode no cliente).
+	shade
+	implementation.extendsFrom shade
+
+	// Motor de áudio volátil (LavaPlayer + youtube-source + transitivas): NÃO
+	// vira classe do jar. Os jars originais são empacotados como recursos em
+	// engine-libs/ e carregados em runtime num classloader próprio, que também
+	// permite auto-atualizar o youtube-source sem recompilar o mod.
+	engineLibs
+	compileOnly.extendsFrom engineLibs
+}
+
+dependencies {
+	minecraft "com.mojang:minecraft:${project.minecraft_version}"
+	mappings "net.fabricmc:yarn:${project.yarn_mappings}:v2"
+	modImplementation "net.fabricmc:fabric-loader:${project.loader_version}"
+	modImplementation "net.fabricmc.fabric-api:fabric-api:${project.fabric_api_version}"
+
+	shade "io.github.jaredmdobson:concentus:1.0.2"
+
+	engineLibs("dev.arbjerg:lavaplayer:${project.lavaplayer_version}") {
+		// Minecraft já traz slf4j; o LavaPlayer loga por ele.
+		exclude group: 'org.slf4j'
+	}
+	engineLibs("dev.lavalink.youtube:v2:${project.youtube_source_version}") {
+		exclude group: 'org.slf4j'
+		exclude group: 'dev.arbjerg', module: 'lavaplayer'
+	}
+}
+
+// Copia os jars resolvidos do motor para dentro dos resources (engine-libs/).
+// Em runtime eles são extraídos para config/simple_musicbox/libs/ no 1º uso.
+// A extensão .jarx impede o shadow de explodir esses jars dentro do jar do mod.
+def engineLibsDir = layout.buildDirectory.dir('generated/engineLibs')
+tasks.register('prepareEngineLibs', Sync) {
+	from configurations.engineLibs
+	into engineLibsDir.map { it.dir('engine-libs') }
+	rename '(.+)\\.jar$', '$1.jarx'
+}
+sourceSets.main.resources.srcDir engineLibsDir
+processResources.dependsOn prepareEngineLibs
+// lazy: sourcesJar só é criado depois, pelo bloco java { withSourcesJar() }
+tasks.matching { it.name == 'sourcesJar' }.configureEach { dependsOn prepareEngineLibs }
+
+processResources {
+	inputs.property "version", project.version
+
+	filesMatching("fabric.mod.json") {
+		expand "version": project.version
+	}
+}
+
+tasks.withType(JavaCompile).configureEach {
+	it.options.release = 21
+}
+
+java {
+	withSourcesJar()
+	sourceCompatibility = JavaVersion.VERSION_21
+	targetCompatibility = JavaVersion.VERSION_21
+}
+
+jar {
+	from("LICENSE") {
+		rename { "${it}_${project.base.archivesName.get()}" }
+	}
+}
+
+shadowJar {
+	configurations = [project.configurations.shade]
+	archiveClassifier = 'dev-shadow'
+	from sourceSets.client.output
+	mergeServiceFiles()
+	exclude 'META-INF/maven/**'
+	exclude 'META-INF/LICENSE*'
+	exclude 'META-INF/NOTICE*'
+}
+
+remapJar {
+	inputFile.set(shadowJar.archiveFile)
+	dependsOn shadowJar
+}

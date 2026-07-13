@@ -1,0 +1,8 @@
+{
+	"comparator_output": 15,
+	"description": {
+		"translate": "jukebox_song.simple_musicbox.custom"
+	},
+	"length_in_seconds": 3600,
+	"sound_event": "simple_musicbox:silence"
+}
