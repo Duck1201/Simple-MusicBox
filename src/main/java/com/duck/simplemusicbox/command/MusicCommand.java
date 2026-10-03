@@ -6,18 +6,15 @@ import com.duck.simplemusicbox.component.ModComponents;
 import com.duck.simplemusicbox.component.TrackData;
 import com.duck.simplemusicbox.item.ModItems;
 import com.mojang.brigadier.arguments.StringArgumentType;
-import com.mojang.brigadier.exceptions.CommandSyntaxException;
 import net.fabricmc.fabric.api.command.v2.CommandRegistrationCallback;
 import net.minecraft.component.DataComponentTypes;
 import net.minecraft.item.ItemStack;
 import net.minecraft.server.MinecraftServer;
 import net.minecraft.server.command.CommandManager;
 import net.minecraft.server.command.ServerCommandSource;
-import net.minecraft.server.network.ServerPlayerEntity;
 import net.minecraft.text.Text;
 import net.minecraft.util.Formatting;
 
-import java.util.UUID;
 import java.util.concurrent.CompletionException;
 
 public class MusicCommand {
@@ -29,9 +26,8 @@ public class MusicCommand {
 										StringArgumentType.getString(context, "url"))))));
 	}
 
-	private static int run(ServerCommandSource source, String url) throws CommandSyntaxException {
-		ServerPlayerEntity player = source.getPlayerOrThrow();
-		UUID playerId = player.getUuid();
+	// Não exige jogador: o console também pode pré-carregar faixas no cache.
+	private static int run(ServerCommandSource source, String url) {
 		MinecraftServer server = source.getServer();
 
 		source.sendFeedback(() -> Text.translatable("simple_musicbox.command.downloading")

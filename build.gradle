@@ -16,6 +16,10 @@ repositories {
 		name = 'Lavalink'
 		url = 'https://maven.lavalink.dev/releases'
 	}
+	maven {
+		name = 'LavalinkSnapshots'
+		url = 'https://maven.lavalink.dev/snapshots'
+	}
 }
 
 loom {
@@ -79,7 +83,11 @@ def engineLibsDir = layout.buildDirectory.dir('generated/engineLibs')
 tasks.register('prepareEngineLibs', Sync) {
 	from configurations.engineLibs
 	into engineLibsDir.map { it.dir('engine-libs') }
-	rename '(.+)\\.jar$', '$1.jarx'
+	rename { String name ->
+		// youtube-source (v2/common) leva o rótulo de versão, que o EngineLoader compara
+		def yt = name =~ /^(v2|common)-.+\.jar$/
+		yt ? "${yt[0][1]}-${project.youtube_source_label}.jarx" : name.replaceAll(/\.jar$/, '.jarx')
+	}
 }
 sourceSets.main.resources.srcDir engineLibsDir
 processResources.dependsOn prepareEngineLibs
@@ -124,3 +132,10 @@ remapJar {
 	inputFile.set(shadowJar.archiveFile)
 	dependsOn shadowJar
 }
+
+// Cópia do jar final (o que vai para o Modrinth) em dist/, a cada build.
+tasks.register('copyJarToDist', Copy) {
+	from remapJar
+	into layout.projectDirectory.dir('dist')
+}
+build.finalizedBy copyJarToDist

@@ -1,5 +1,7 @@
 package com.duck.simplemusicbox.engine;
 
+import com.duck.simplemusicbox.ModConfig;
+import com.duck.simplemusicbox.SimpleMusicBox;
 import com.duck.simplemusicbox.audio.AudioEngine;
 import com.duck.simplemusicbox.audio.DownloadException;
 import com.sedmelluq.discord.lavaplayer.format.AudioDataFormat;
@@ -18,6 +20,7 @@ import com.sedmelluq.discord.lavaplayer.track.AudioTrack;
 import com.sedmelluq.discord.lavaplayer.track.AudioTrackInfo;
 import com.sedmelluq.discord.lavaplayer.track.playback.AudioFrame;
 import dev.lavalink.youtube.YoutubeAudioSourceManager;
+import dev.lavalink.youtube.clients.skeleton.Client;
 import io.github.jaredmdobson.concentus.OpusApplication;
 import io.github.jaredmdobson.concentus.OpusEncoder;
 import io.github.jaredmdobson.concentus.OpusException;
@@ -25,6 +28,8 @@ import io.github.jaredmdobson.concentus.OpusSignal;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Locale;
+import java.util.Map;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.TimeUnit;
@@ -45,6 +50,11 @@ public class LavaPlayerAudioEngine implements AudioEngine {
 	private static final int SAMPLE_RATE = 48000;
 	private static final int CHANNELS = 2;
 	private static final int SAMPLES_PER_FRAME = 960; // 20 ms a 48 kHz
+	/** Identificador do youtube-source (README) -> classe em dev.lavalink.youtube.clients. */
+	private static final Map<String, String> CLIENT_CLASSES = Map.of(
+			"WEB", "Web", "MWEB", "MWeb", "WEB_EMBEDDED", "WebEmbedded", "WEBEMBEDDED", "WebEmbedded",
+			"ANDROID", "Android", "ANDROID_MUSIC", "AndroidMusic", "ANDROID_VR", "AndroidVr",
+			"IOS", "Ios", "TV", "Tv", "TVHTML5_SIMPLY", "TvHtml5Simply");
 
 	public LavaPlayerAudioEngine() {
 		// Valida cedo que o youtube-source carregado é compatível.
@@ -61,7 +71,10 @@ public class LavaPlayerAudioEngine implements AudioEngine {
 					? new Pcm16AudioDataFormat(CHANNELS, SAMPLE_RATE, SAMPLES_PER_FRAME, false)
 					: StandardAudioDataFormats.DISCORD_OPUS;
 			manager.getConfiguration().setOutputFormat(format);
-			manager.registerSourceManager(new YoutubeAudioSourceManager());
+			Client[] clients = configuredClients();
+			manager.registerSourceManager(clients.length == 0
+					? new YoutubeAudioSourceManager()
+					: new YoutubeAudioSourceManager(true, clients));
 
 			AudioTrack track = resolve(manager, url);
 			AudioTrackInfo info = track.getInfo();
@@ -81,6 +94,22 @@ public class LavaPlayerAudioEngine implements AudioEngine {
 		} finally {
 			manager.shutdown();
 		}
+	}
+
+	/** Clients de youtubeClients (config), na ordem; ignora nomes desconhecidos. */
+	private static Client[] configuredClients() {
+		List<String> ids = ModConfig.get().youtubeClients;
+		List<Client> clients = new ArrayList<>();
+		for (String id : ids == null ? List.<String>of() : ids) {
+			String className = CLIENT_CLASSES.get(id.toUpperCase(Locale.ROOT));
+			try {
+				clients.add((Client) Class.forName("dev.lavalink.youtube.clients."
+						+ (className != null ? className : id)).getDeclaredConstructor().newInstance());
+			} catch (ReflectiveOperationException | ClassCastException | LinkageError e) {
+				SimpleMusicBox.LOGGER.warn("Unknown YouTube client '{}' in config, skipping", id);
+			}
+		}
+		return clients.toArray(Client[]::new);
 	}
 
 	private AudioTrack resolve(AudioPlayerManager manager, String url) throws DownloadException {

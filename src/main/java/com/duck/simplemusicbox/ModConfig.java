@@ -7,6 +7,7 @@ import net.fabricmc.loader.api.FabricLoader;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.util.List;
 
 public class ModConfig {
 	private static final Gson GSON = new GsonBuilder().setPrettyPrinting().create();
@@ -44,6 +45,14 @@ public class ModConfig {
 	 * repositório Maven oficial do Lavalink para config/simple_musicbox/libs.
 	 */
 	public boolean autoUpdateYoutubeSource = true;
+	/**
+	 * (Servidor) Clients do YouTube tentados em ordem (identificadores do
+	 * youtube-source: ANDROID, IOS, ANDROID_VR, WEB, MWEB, TVHTML5_SIMPLY,
+	 * WEB_EMBEDDED, ANDROID_MUSIC, TV). Quando o YouTube bloqueia um client,
+	 * dá para reordenar aqui sem recompilar. Vazio = padrão do youtube-source.
+	 */
+	public List<String> youtubeClients = List.of(
+			"ANDROID", "IOS", "ANDROID_VR", "TVHTML5_SIMPLY", "WEB", "MWEB", "WEB_EMBEDDED");
 
 	public static ModConfig get() {
 		if (instance == null) {
