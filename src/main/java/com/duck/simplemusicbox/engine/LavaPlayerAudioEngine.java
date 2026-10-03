@@ -4,6 +4,7 @@ import com.duck.simplemusicbox.ModConfig;
 import com.duck.simplemusicbox.SimpleMusicBox;
 import com.duck.simplemusicbox.audio.AudioEngine;
 import com.duck.simplemusicbox.audio.DownloadException;
+import com.duck.simplemusicbox.audio.DurationMatch;
 import com.sedmelluq.discord.lavaplayer.format.AudioDataFormat;
 import com.sedmelluq.discord.lavaplayer.format.Pcm16AudioDataFormat;
 import com.sedmelluq.discord.lavaplayer.format.StandardAudioDataFormats;
@@ -62,8 +63,8 @@ public class LavaPlayerAudioEngine implements AudioEngine {
 	}
 
 	@Override
-	public Result download(String url, long maxDurationMs, int opusBitrate, Predicate<String> alreadyCached)
-			throws DownloadException {
+	public Result download(String url, long expectedDurationMs, long maxDurationMs, int opusBitrate,
+			Predicate<String> alreadyCached) throws DownloadException {
 		AudioPlayerManager manager = new DefaultAudioPlayerManager();
 		try {
 			boolean reencode = opusBitrate > 0;
@@ -76,7 +77,7 @@ public class LavaPlayerAudioEngine implements AudioEngine {
 					? new YoutubeAudioSourceManager()
 					: new YoutubeAudioSourceManager(true, clients));
 
-			AudioTrack track = resolve(manager, url);
+			AudioTrack track = resolve(manager, url, expectedDurationMs);
 			AudioTrackInfo info = track.getInfo();
 			if (info.isStream) {
 				throw new DownloadException(DownloadException.Kind.LIVE, info.title);
@@ -112,7 +113,8 @@ public class LavaPlayerAudioEngine implements AudioEngine {
 		return clients.toArray(Client[]::new);
 	}
 
-	private AudioTrack resolve(AudioPlayerManager manager, String url) throws DownloadException {
+	private AudioTrack resolve(AudioPlayerManager manager, String url, long expectedDurationMs)
+			throws DownloadException {
 		CompletableFuture<AudioTrack> resolved = new CompletableFuture<>();
 		manager.loadItem(url, new AudioLoadResultHandler() {
 			@Override
@@ -122,6 +124,18 @@ public class LavaPlayerAudioEngine implements AudioEngine {
 
 			@Override
 			public void playlistLoaded(AudioPlaylist playlist) {
+				if (playlist.isSearchResult()) {
+					List<AudioTrack> results = playlist.getTracks();
+					int best = DurationMatch.bestIndex(
+							results.stream().map(AudioTrack::getDuration).toList(), expectedDurationMs);
+					if (best < 0) {
+						resolved.completeExceptionally(
+								new DownloadException(DownloadException.Kind.NO_MATCH, url));
+					} else {
+						resolved.complete(results.get(best));
+					}
+					return;
+				}
 				AudioTrack track = playlist.getSelectedTrack() != null
 						? playlist.getSelectedTrack()
 						: playlist.getTracks().isEmpty() ? null : playlist.getTracks().getFirst();

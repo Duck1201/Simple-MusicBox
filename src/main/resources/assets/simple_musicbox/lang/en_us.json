@@ -1,10 +1,10 @@
 {
 	"item.simple_musicbox.music_disc_custom": "Custom Music Disc",
-	"item.simple_musicbox.music_disc_custom.empty": "Empty — use /music <url>",
+	"item.simple_musicbox.music_disc_custom.empty": "Blank — put it in a jukebox and pick a track to record",
 	"jukebox_song.simple_musicbox.custom": "Simple MusicBox",
 	"simple_musicbox.command.downloading": "Downloading track, please wait...",
 	"simple_musicbox.command.added": "Track available in the jukebox: %s",
-	"simple_musicbox.command.error.invalid_url": "That doesn't look like a YouTube link.",
+	"simple_musicbox.command.error.invalid_url": "That doesn't look like a YouTube or Spotify track link.",
 	"simple_musicbox.command.error.not_found": "No playable track found at that link.",
 	"simple_musicbox.command.error.too_long": "Track is too long (max %s minutes).",
 	"simple_musicbox.command.error.live": "Live streams can't be turned into discs.",
@@ -22,10 +22,14 @@
 	"simple_musicbox.gui.loop_off": "Loop: off",
 	"simple_musicbox.command.error.no_jukebox": "No jukebox within %s blocks.",
 	"simple_musicbox.gui.search": "search cache...",
-	"simple_musicbox.gui.url": "paste a YouTube URL...",
+	"simple_musicbox.gui.url": "paste a YouTube or Spotify link...",
 	"simple_musicbox.gui.download": "Download",
 	"simple_musicbox.gui.playing_tag": "now playing",
 	"simple_musicbox.gui.paused_tag": "paused",
 	"simple_musicbox.loop.enabled": "🔁 Loop enabled",
-	"simple_musicbox.loop.disabled": "Loop disabled"
+	"simple_musicbox.loop.disabled": "Loop disabled",
+	"item.simple_musicbox.music_disc_blank": "Blank Disc",
+	"simple_musicbox.command.error.no_match": "Couldn't find this song on YouTube with a matching length.",
+	"simple_musicbox.command.error.spotify_only_tracks": "Only Spotify track links are supported (not albums or playlists).",
+	"simple_musicbox.gui.blank_disc": "Blank disc: pick a track to record it"
 }

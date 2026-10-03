@@ -2,19 +2,25 @@ package com.duck.simplemusicbox.playback;
 
 import com.duck.simplemusicbox.ModConfig;
 import com.duck.simplemusicbox.SimpleMusicBox;
+import com.duck.simplemusicbox.component.ModComponents;
 import com.duck.simplemusicbox.component.TrackData;
+import com.duck.simplemusicbox.item.Discs;
 import com.duck.simplemusicbox.net.PlayTrackPayload;
 import com.duck.simplemusicbox.net.StopTrackPayload;
 import com.duck.simplemusicbox.net.TrackChunkPayload;
+import net.fabricmc.fabric.api.event.lifecycle.v1.ServerBlockEntityEvents;
 import net.fabricmc.fabric.api.event.lifecycle.v1.ServerLifecycleEvents;
 import net.fabricmc.fabric.api.event.lifecycle.v1.ServerTickEvents;
 import net.fabricmc.fabric.api.networking.v1.ServerPlayConnectionEvents;
 import net.fabricmc.fabric.api.networking.v1.ServerPlayNetworking;
+import net.minecraft.block.entity.JukeboxBlockEntity;
+import net.minecraft.item.ItemStack;
 import net.minecraft.server.network.ServerPlayerEntity;
 import net.minecraft.server.world.ServerWorld;
 import net.minecraft.text.Text;
 import net.minecraft.util.Formatting;
 import net.minecraft.util.math.BlockPos;
+import net.minecraft.util.math.ChunkSectionPos;
 import net.minecraft.util.math.GlobalPos;
 import net.minecraft.util.math.Vec3d;
 
@@ -56,6 +62,7 @@ public class JukeboxSessionManager {
 	}
 
 	private static final Map<GlobalPos, Session> SESSIONS = new HashMap<>();
+	private static final Set<GlobalPos> PENDING_RESUME = new HashSet<>();
 	private static final Map<UUID, Queue<TrackChunkPayload>> CHUNK_QUEUES = new HashMap<>();
 
 	/** Chamado quando a sessão termina naturalmente, para desligar o estado vanilla da jukebox. */
@@ -80,19 +87,62 @@ public class JukeboxSessionManager {
 				session.notified.remove(id);
 			}
 		});
+		// A sessão só existe em memória: depois de reiniciar o servidor (ou recarregar
+		// o chunk), a jukebox volta com o disco e o estado vanilla "tocando", mas
+		// sem áudio. Só anota aqui — o evento roda no meio do carregamento do chunk,
+		// e mexer no mundo agora travaria o servidor; a retomada é no tick.
+		ServerBlockEntityEvents.BLOCK_ENTITY_LOAD.register((blockEntity, world) -> {
+			if (blockEntity instanceof JukeboxBlockEntity jukebox && jukebox.getManager().isPlaying()
+					&& jukebox.getStack().contains(ModComponents.TRACK)) {
+				PENDING_RESUME.add(GlobalPos.create(world.getRegistryKey(), jukebox.getPos()));
+			}
+		});
 		ServerLifecycleEvents.SERVER_STOPPED.register(server -> {
 			SESSIONS.clear();
+			PENDING_RESUME.clear();
 			CHUNK_QUEUES.clear();
 		});
 	}
 
 	public static void start(ServerWorld world, BlockPos pos, TrackData track) {
+		start(world, pos, track, 0);
+	}
+
+	private static void start(ServerWorld world, BlockPos pos, TrackData track, long offsetMs) {
 		GlobalPos key = GlobalPos.create(world.getRegistryKey(), pos);
 		Session session = new Session(track);
+		session.startedAtMs -= offsetMs;
 		SESSIONS.put(key, session);
 		notifyNearbyPlayers(world, pos, session);
 		SimpleMusicBox.LOGGER.info("Jukebox at {} started playing {} ({})", pos.toShortString(),
 				track.title(), track.videoId());
+		if (!SimpleMusicBox.trackCache().has(track.videoId())) {
+			redownload(world, pos, session);
+		}
+	}
+
+	/**
+	 * Disco cuja faixa não está nesta biblioteca (ex.: disco de antes da
+	 * biblioteca por mundo, ou dado por /give): sem isso, quem não tem a faixa
+	 * no cache local ficaria em silêncio. Baixa de novo pelo ID do YouTube e
+	 * reenvia o "tocar" para quem está perto.
+	 */
+	private static void redownload(ServerWorld world, BlockPos pos, Session session) {
+		String videoId = session.track.videoId();
+		SimpleMusicBox.LOGGER.info("Track {} is not in this library; downloading it again", videoId);
+		SimpleMusicBox.downloader().download("https://www.youtube.com/watch?v=" + videoId)
+				.whenComplete((track, error) -> world.getServer().execute(() -> {
+					if (error != null) {
+						SimpleMusicBox.LOGGER.warn("Could not re-download track {}: {}", videoId,
+								String.valueOf(error.getMessage()));
+						return;
+					}
+					// Ainda a mesma sessão? Então avisa de novo quem já tinha sido avisado.
+					if (SESSIONS.get(GlobalPos.create(world.getRegistryKey(), pos)) == session) {
+						session.notified.clear();
+						notifyNearbyPlayers(world, pos, session);
+					}
+				}));
 	}
 
 	public static void stop(ServerWorld world, BlockPos pos) {
@@ -108,6 +158,39 @@ public class JukeboxSessionManager {
 		for (ServerPlayerEntity player : world.getPlayers()) {
 			ServerPlayNetworking.send(player, payload);
 		}
+	}
+
+	/** Retoma as jukeboxes anotadas no carregamento (chamado no tick do mundo). */
+	private static void resumePending(ServerWorld world) {
+		for (Iterator<GlobalPos> it = PENDING_RESUME.iterator(); it.hasNext();) {
+			GlobalPos key = it.next();
+			if (key.dimension().equals(world.getRegistryKey())) {
+				it.remove();
+				if (world.isChunkLoaded(ChunkSectionPos.getSectionCoord(key.pos().getX()),
+						ChunkSectionPos.getSectionCoord(key.pos().getZ()))) {
+					resume(world, key.pos());
+				}
+			}
+		}
+	}
+
+	private static void resume(ServerWorld world, BlockPos pos) {
+		if (isPlaying(world, pos)
+				|| !(world.getBlockEntity(pos) instanceof JukeboxBlockEntity jukebox)
+				|| !jukebox.getManager().isPlaying()) {
+			return;
+		}
+		TrackData track = jukebox.getStack().get(ModComponents.TRACK);
+		if (track == null) {
+			return;
+		}
+		long offsetMs = jukebox.getManager().getTicksSinceSongStarted() * 50;
+		if (offsetMs >= track.durationMs()) {
+			advanceQueue(world, pos, track);
+			return;
+		}
+		SimpleMusicBox.LOGGER.info("Resuming jukebox at {} at {} ms", pos.toShortString(), offsetMs);
+		start(world, pos, track, offsetMs);
 	}
 
 	/** Alterna pause/retomada; retorna o novo estado (true = pausado). */
@@ -177,6 +260,9 @@ public class JukeboxSessionManager {
 	}
 
 	private static void tickWorld(ServerWorld world) {
+		if (!PENDING_RESUME.isEmpty()) {
+			resumePending(world);
+		}
 		if (world.getTime() % 10 != 0 || SESSIONS.isEmpty()) {
 			return;
 		}
@@ -218,26 +304,38 @@ public class JukeboxSessionManager {
 			return;
 		}
 		boolean loop = jukebox instanceof JukeboxLoopAccess access && access.simple_musicbox$isLoop();
+		ItemStack inside = jukebox.getStack();
+		// setStack dispara o fluxo vanilla + o mixin, que abre a nova sessão.
+		if (Discs.isPhysical(inside)) {
+			// Disco físico se comporta como um vanilla: repete com loop, senão para
+			// e continua na jukebox. Nunca é trocado pela fila.
+			if (loop) {
+				jukebox.setStack(inside);
+			} else {
+				vanillaStop.stopVanilla(world, pos);
+			}
+			return;
+		}
 		TrackData next = loop ? ended : nextInQueue(ended);
 		if (next == null) {
 			vanillaStop.stopVanilla(world, pos);
 			return;
 		}
-		// setStack dispara o fluxo vanilla + o mixin, que abre a nova sessão.
-		jukebox.setStack(com.duck.simplemusicbox.command.MusicCommand.createDisc(next));
+		jukebox.setStack(Discs.virtual(next));
 	}
 
 	/** Pulo manual (botão Avançar): vai para a próxima da fila mesmo com loop ligado. */
 	public static void skip(ServerWorld world, BlockPos pos) {
-		if (!(world.getBlockEntity(pos) instanceof net.minecraft.block.entity.JukeboxBlockEntity jukebox)) {
-			return;
+		if (!(world.getBlockEntity(pos) instanceof JukeboxBlockEntity jukebox)
+				|| Discs.isPhysical(jukebox.getStack())) {
+			return; // disco físico nunca é sobrescrito (a GUI o devolve antes)
 		}
 		Session session = SESSIONS.remove(GlobalPos.create(world.getRegistryKey(), pos));
 		TrackData current = session != null ? session.track
-				: jukebox.getStack().get(com.duck.simplemusicbox.component.ModComponents.TRACK);
+				: jukebox.getStack().get(ModComponents.TRACK);
 		TrackData next = nextInQueue(current);
 		if (next != null) {
-			jukebox.setStack(com.duck.simplemusicbox.command.MusicCommand.createDisc(next));
+			jukebox.setStack(Discs.virtual(next));
 		} else if (session != null) {
 			vanillaStop.stopVanilla(world, pos);
 		}

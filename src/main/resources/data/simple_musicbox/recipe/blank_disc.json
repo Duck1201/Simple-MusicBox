@@ -1,0 +1,21 @@
+{
+	"type": "minecraft:crafting_shaped",
+	"category": "misc",
+	"pattern": [
+		" F ",
+		"FAF",
+		" F "
+	],
+	"key": {
+		"F": {
+			"item": "minecraft:cobblestone"
+		},
+		"A": {
+			"item": "minecraft:iron_ingot"
+		}
+	},
+	"result": {
+		"id": "simple_musicbox:music_disc_custom",
+		"count": 1
+	}
+}

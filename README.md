@@ -2,16 +2,16 @@
 
 **Autor:** Duck • **Licença:** Apache 2.0 • **Data:** 13/07/2026
 
-Mod Fabric para Minecraft **1.21.1** que cria discos de música a partir de links do YouTube.
+Mod Fabric para Minecraft **1.21.1** que toca músicas de links do YouTube e do Spotify em
+jukeboxes.
 
 ```
-/music <url do YouTube>
+/music <link do YouTube ou de uma faixa do Spotify>
 ```
 
-O servidor baixa e converte a faixa (LavaPlayer + youtube-source, formato Opus), entrega um
-**Disco de Música Personalizado** e, ao colocá-lo em uma jukebox, todos os jogadores próximos
-ouvem a música com áudio posicional — igual a um disco vanilla (partículas, allays dançando,
-sinal de comparador etc.).
+O servidor baixa e converte a faixa (LavaPlayer + youtube-source, formato Opus) e ela fica
+disponível em qualquer jukebox. Todos os jogadores próximos ouvem a música com áudio
+posicional — igual a um disco vanilla (partículas, allays dançando, sinal de comparador etc.).
 
 ## Requisitos
 
@@ -23,13 +23,11 @@ sinal de comparador etc.).
 
 ## Como funciona
 
-1. `/music <url>` → o servidor resolve a faixa, decodifica para frames Opus e grava em
+1. `/music <url>` → o servidor resolve a faixa (link do Spotify: veja abaixo), decodifica para frames Opus e grava em
    `<biblioteca>/<videoId>.smb` (a mesma URL não é baixada duas vezes). A biblioteca fica em
    `config/simple_musicbox/cache` no servidor dedicado; no single-player (e LAN) cada mundo
    tem a sua, em `<pasta do mundo>/simple_musicbox/cache`.
-2. A faixa fica disponível na GUI de qualquer jukebox. Discos físicos (com o título da
-   faixa num data component `simple_musicbox:track`) **só nascem ejetando uma jukebox**;
-   ao fim da faixa, o disco dentro dela é trocado pelo da próxima.
+2. A faixa fica disponível na GUI de qualquer jukebox (veja "Discos" abaixo).
 3. Ao inserir na jukebox, o servidor abre uma "sessão" e envia aos jogadores num raio de
    64 blocos o pedido de reprodução; quem não tem a faixa no cache local pede os bytes,
    que chegam em chunks de ~60 KB com limite de vazão por tick.
@@ -37,20 +35,51 @@ sinal de comparador etc.).
    um som posicional da categoria "Discos/Jukebox" (funciona com o slider de volume).
 5. Quem chega perto no meio da música ouve a partir do ponto certo; ejetar o disco ou
    quebrar a jukebox para a música para todos.
+6. Se o servidor reiniciar (ou o chunk descarregar) com uma música tocando, ela retoma do
+   ponto em que estava. Se a faixa de um disco não estiver na biblioteca (ex.: disco de
+   outro mundo), o servidor baixa de novo pelo ID do YouTube.
+
+## Links do Spotify
+
+O Spotify não permite baixar áudio. Para um link de **faixa** (`open.spotify.com/track/...`
+ou `spotify:track:...`), o servidor lê título, artista e duração da página pública da faixa
+(sem login nem credenciais) e busca a música no YouTube, escolhendo entre os 5 primeiros
+resultados o de duração mais próxima (tolerância de 10 s ou 10%) — assim evita clipes
+estendidos e versões ao vivo. Álbuns e playlists não são aceitos.
+
+## Discos
+
+- **Disco Virgem**: craftado (receita abaixo). Coloque na jukebox, escolha uma faixa na GUI e
+  ele é **gravado**; **Ejetar** devolve o disco com a música, que você guarda e leva para
+  outra jukebox.
+- **Tocar pela GUI sem disco**: a jukebox toca um disco *virtual*, que não vira item —
+  ejetar ou quebrar a jukebox só para a música. Assim não dá para duplicar discos.
+- Disco gravado (ou vanilla) na jukebox é seu: trocar de faixa pela GUI o devolve ao seu
+  inventário, e ele nunca é substituído pela fila.
+
+Receita do Disco Virgem (bancada):
+
+```
+   [ ] [P] [ ]
+   [P] [F] [P]      P = pedregulho, F = barra de ferro
+   [ ] [P] [ ]
+```
 
 ## GUI da jukebox (shift + clique-direito)
 
 Abre uma tela com a faixa atual e barra de progresso ao vivo, botões **Pausar** /
 **Parar** / **Avançar** / **Ejetar** / **Loop**, a lista de todas as faixas do cache do servidor
-(com busca), e um campo para baixar direto por URL. Clicar numa faixa toca na hora (o
-disco é materializado dentro da jukebox); **Ejetar** entrega o disco da faixa atual.
+(com busca), e um campo para baixar direto por link (YouTube ou Spotify). Clicar numa faixa
+toca na hora — ou grava o Disco Virgem que estiver na jukebox; **Ejetar** entrega o disco
+físico que estiver nela.
 Também abre pelo chat com `/player` (jukebox mais próxima, raio de 16 blocos).
 
 ## Fila e loop
 
-- **Sem loop**: ao terminar uma faixa, a jukebox avança sozinha para a próxima do cache
-  (ordem alfabética, circular) — uma rádio que só para quando alguém usar Parar/Ejetar ou
-  quebrar o bloco. Se só existir uma faixa no cache, ela repete.
+- **Sem loop**: ao terminar uma faixa tocada pela GUI, a jukebox avança sozinha para a
+  próxima do cache (ordem alfabética, circular) — uma rádio que só para quando alguém usar
+  Parar/Ejetar ou quebrar o bloco. Se só existir uma faixa no cache, ela repete. Um disco
+  físico, ao terminar, para e continua na jukebox, como um disco vanilla.
 - **Com loop** (botão na GUI, salvo no bloco): repete a faixa atual indefinidamente.
 
 ## Configuração (`config/simple_musicbox/config.json`)
@@ -122,14 +151,12 @@ relocados para evitar conflito com as libs do próprio Minecraft).
 
 ## Limitações conhecidas
 
-- Apenas YouTube na v1 (Spotify não permite download de áudio; o plano é resolver links do
-  Spotify via metadados + busca no YouTube em uma versão futura).
+- Spotify: só links de faixa (álbuns e playlists não), e a música vem do YouTube — se a
+  busca não achar uma versão com duração compatível, o link é recusado.
 - O YouTube muda com frequência; o mod se auto-atualiza (seção acima), mas entre a quebra e
   a correção da comunidade os downloads podem falhar temporariamente.
 - Em servidores hospedados em datacenter o YouTube pode bloquear downloads (soluções como
   OAuth do youtube-source ficam para depois).
-- Se o servidor reiniciar com uma música tocando, a jukebox vanilla pode ficar "tocando"
-  silêncio até o disco ser ejetado.
 
 ## Licença
 

@@ -53,6 +53,7 @@ public class JukeboxScreen extends Screen {
 
 	private final List<TrackData> filtered = new ArrayList<>();
 	private int scroll;
+	private boolean blankDisc;
 	private ButtonWidget loopButton;
 	private ButtonWidget pauseButton;
 	private TextFieldWidget searchField;
@@ -91,6 +92,7 @@ public class JukeboxScreen extends Screen {
 
 	private void apply(JukeboxGuiOpenPayload payload) {
 		this.loop = payload.loop();
+		this.blankDisc = payload.blankDisc();
 		this.paused = payload.paused();
 		this.current = payload.current();
 		this.basePositionMs = payload.positionMs();
@@ -226,10 +228,11 @@ public class JukeboxScreen extends Screen {
 
 		// Faixa atual + barra de progresso
 		Text nowPlaying = current.map(track -> (Text) Text.literal(track.title()).formatted(Formatting.AQUA))
-				.orElse(Text.translatable("simple_musicbox.gui.nothing").formatted(Formatting.DARK_GRAY));
+				.orElse(Text.translatable(blankDisc ? "simple_musicbox.gui.blank_disc" : "simple_musicbox.gui.nothing")
+						.formatted(Formatting.DARK_GRAY));
 		context.drawText(textRenderer,
 				textRenderer.trimToWidth(nowPlaying.getString(), PANEL_WIDTH - 16),
-				left + 8, top + 17, current.isPresent() ? 0x55DCDC : 0x666666, false);
+				left + 8, top + 17, current.isPresent() ? 0x55DCDC : blankDisc ? 0xE0C060 : 0x666666, false);
 
 		int barX = left + 8;
 		int barY = top + 30;

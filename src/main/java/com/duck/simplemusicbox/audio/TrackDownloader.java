@@ -45,7 +45,12 @@ public class TrackDownloader {
 	}
 
 	public CompletableFuture<TrackData> download(String url) {
-		if (!YOUTUBE_URL.matcher(url.trim()).matches()) {
+		if (SpotifyResolver.isSpotifyUrl(url)) {
+			if (SpotifyResolver.trackId(url).isEmpty()) {
+				return CompletableFuture.failedFuture(
+						new DownloadException(DownloadException.Kind.SPOTIFY_ONLY_TRACKS, url));
+			}
+		} else if (!YOUTUBE_URL.matcher(url.trim()).matches()) {
 			return CompletableFuture.failedFuture(
 					new DownloadException(DownloadException.Kind.INVALID_URL, url));
 		}
@@ -62,11 +67,29 @@ public class TrackDownloader {
 	private void run(String url, TrackCache cache, CompletableFuture<TrackData> future) {
 		try {
 			ModConfig config = ModConfig.get();
+			// Spotify: metadados da página pública -> busca no YouTube pela duração
+			String source = url;
+			long expectedDurationMs = 0;
+			String titleOverride = null;
+			String spotifyId = "";
+			if (SpotifyResolver.isSpotifyUrl(url)) {
+				spotifyId = SpotifyResolver.trackId(url).orElse("");
+				SpotifyResolver.SpotifyTrack spotify = SpotifyResolver.resolve(url);
+				source = spotify.youtubeSearch();
+				expectedDurationMs = spotify.durationMs();
+				titleOverride = spotify.displayTitle();
+				SimpleMusicBox.LOGGER.info("Spotify {} -> searching YouTube for \"{}\" ({} s)",
+						url, spotify.displayTitle(), expectedDurationMs / 1000);
+			}
 			AudioEngine engine = EngineLoader.getEngine();
-			AudioEngine.Result result = engine.download(url,
+			AudioEngine.Result result = engine.download(source, expectedDurationMs,
 					config.maxDurationSeconds * 1000L,
 					config.opusBitrate <= 0 ? 0 : Math.clamp(config.opusBitrate, 24_000, 320_000),
 					cache::has);
+			if (titleOverride != null) {
+				SimpleMusicBox.LOGGER.info("Spotify match: YouTube {} \"{}\" ({} s)",
+						result.videoId(), result.title(), result.durationMs() / 1000);
+			}
 
 			if (result.frames() == null) {
 				// Já estava no cache; usa os metadados de lá (duração real).
@@ -74,7 +97,8 @@ public class TrackDownloader {
 						() -> new DownloadException(DownloadException.Kind.FAILED, "cache desapareceu")));
 				return;
 			}
-			TrackData data = new TrackData(result.videoId(), result.title(), result.durationMs());
+			TrackData data = new TrackData(result.videoId(),
+					titleOverride != null ? titleOverride : result.title(), result.durationMs(), spotifyId);
 			cache.write(data, result.frames());
 			SimpleMusicBox.LOGGER.info("Downloaded track {} ({}, {} frames)",
 					data.videoId(), data.title(), result.frames().size());

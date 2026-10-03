@@ -10,6 +10,10 @@ public class DownloadException extends RuntimeException {
 		LIVE,
 		/** O YouTube mudou algo e o extractor atual não dá conta; atualizar resolve. */
 		YOUTUBE_CHANGED,
+		/** Link do Spotify sem nenhum resultado no YouTube com duração compatível. */
+		NO_MATCH,
+		/** Link do Spotify que não é de uma faixa (álbum, playlist, artista...). */
+		SPOTIFY_ONLY_TRACKS,
 		FAILED
 	}
 

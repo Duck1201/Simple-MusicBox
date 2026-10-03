@@ -13,9 +13,9 @@ import java.util.Optional;
 
 /**
  * S2C: abre (ou atualiza) a GUI da jukebox no cliente, com o estado atual e a
- * lista de faixas do cache do servidor.
+ * lista de faixas do cache do servidor. blankDisc = há um Disco Virgem na jukebox.
  */
-public record JukeboxGuiOpenPayload(BlockPos pos, boolean loop, boolean paused,
+public record JukeboxGuiOpenPayload(BlockPos pos, boolean loop, boolean blankDisc, boolean paused,
 		Optional<TrackData> current, long positionMs, List<TrackData> tracks) implements CustomPayload {
 	public static final CustomPayload.Id<JukeboxGuiOpenPayload> ID =
 			new CustomPayload.Id<>(SimpleMusicBox.id("gui_open"));
@@ -26,6 +26,7 @@ public record JukeboxGuiOpenPayload(BlockPos pos, boolean loop, boolean paused,
 	private void write(RegistryByteBuf buf) {
 		buf.writeBlockPos(pos);
 		buf.writeBoolean(loop);
+		buf.writeBoolean(blankDisc);
 		buf.writeBoolean(paused);
 		buf.writeBoolean(current.isPresent());
 		current.ifPresent(track -> TrackData.PACKET_CODEC.encode(buf, track));
@@ -39,6 +40,7 @@ public record JukeboxGuiOpenPayload(BlockPos pos, boolean loop, boolean paused,
 	private static JukeboxGuiOpenPayload read(RegistryByteBuf buf) {
 		BlockPos pos = buf.readBlockPos();
 		boolean loop = buf.readBoolean();
+		boolean blankDisc = buf.readBoolean();
 		boolean paused = buf.readBoolean();
 		Optional<TrackData> current = buf.readBoolean()
 				? Optional.of(TrackData.PACKET_CODEC.decode(buf))
@@ -49,7 +51,7 @@ public record JukeboxGuiOpenPayload(BlockPos pos, boolean loop, boolean paused,
 		for (int i = 0; i < count; i++) {
 			tracks.add(TrackData.PACKET_CODEC.decode(buf));
 		}
-		return new JukeboxGuiOpenPayload(pos, loop, paused, current, positionMs, tracks);
+		return new JukeboxGuiOpenPayload(pos, loop, blankDisc, paused, current, positionMs, tracks);
 	}
 
 	@Override

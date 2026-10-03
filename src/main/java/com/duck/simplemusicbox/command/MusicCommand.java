@@ -2,13 +2,9 @@ package com.duck.simplemusicbox.command;
 
 import com.duck.simplemusicbox.SimpleMusicBox;
 import com.duck.simplemusicbox.audio.DownloadException;
-import com.duck.simplemusicbox.component.ModComponents;
 import com.duck.simplemusicbox.component.TrackData;
-import com.duck.simplemusicbox.item.ModItems;
 import com.mojang.brigadier.arguments.StringArgumentType;
 import net.fabricmc.fabric.api.command.v2.CommandRegistrationCallback;
-import net.minecraft.component.DataComponentTypes;
-import net.minecraft.item.ItemStack;
 import net.minecraft.server.MinecraftServer;
 import net.minecraft.server.command.CommandManager;
 import net.minecraft.server.command.ServerCommandSource;
@@ -49,21 +45,12 @@ public class MusicCommand {
 				source.sendError(describeError(unwrap(error)));
 				return;
 			}
-			// Sem disco de brinde: discos só nascem ejetando uma jukebox.
+			// Sem disco de brinde: discos físicos só nascem gravando um Disco Virgem.
 			// A faixa fica disponível na GUI (shift+clique na jukebox ou /player).
 			source.sendFeedback(() -> Text.translatable("simple_musicbox.command.added",
 					Text.literal(track.title()).formatted(Formatting.AQUA)), false);
 		}));
 		return 1;
-	}
-
-	public static ItemStack createDisc(TrackData track) {
-		ItemStack stack = new ItemStack(ModItems.MUSIC_DISC_CUSTOM);
-		stack.set(ModComponents.TRACK, track);
-		stack.set(DataComponentTypes.CUSTOM_NAME, Text.literal(track.title())
-				.formatted(Formatting.AQUA)
-				.styled(style -> style.withItalic(false)));
-		return stack;
 	}
 
 	private static Throwable unwrap(Throwable error) {
@@ -79,6 +66,8 @@ public class MusicCommand {
 						com.duck.simplemusicbox.ModConfig.get().maxDurationSeconds / 60);
 				case LIVE -> Text.translatable("simple_musicbox.command.error.live");
 				case YOUTUBE_CHANGED -> Text.translatable("simple_musicbox.command.error.youtube_changed");
+				case NO_MATCH -> Text.translatable("simple_musicbox.command.error.no_match");
+				case SPOTIFY_ONLY_TRACKS -> Text.translatable("simple_musicbox.command.error.spotify_only_tracks");
 				case FAILED -> Text.translatable("simple_musicbox.command.error.failed",
 						String.valueOf(downloadError.getMessage()));
 			};

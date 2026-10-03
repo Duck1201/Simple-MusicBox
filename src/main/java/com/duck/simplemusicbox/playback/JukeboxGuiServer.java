@@ -2,6 +2,7 @@ package com.duck.simplemusicbox.playback;
 
 import com.duck.simplemusicbox.SimpleMusicBox;
 import com.duck.simplemusicbox.command.MusicCommand;
+import com.duck.simplemusicbox.item.Discs;
 import com.duck.simplemusicbox.net.JukeboxGuiActionPayload;
 import com.duck.simplemusicbox.net.JukeboxGuiOpenPayload;
 import net.fabricmc.fabric.api.event.player.UseBlockCallback;
@@ -67,9 +68,12 @@ public class JukeboxGuiServer {
 		boolean loop = world.getBlockEntity(pos) instanceof JukeboxLoopAccess access
 				&& access.simple_musicbox$isLoop();
 		Optional<JukeboxSessionManager.SessionInfo> session = JukeboxSessionManager.sessionAt(world, pos);
+		boolean blankDisc = world.getBlockEntity(pos) instanceof JukeboxBlockEntity jukebox
+				&& Discs.isBlank(jukebox.getStack());
 		ServerPlayNetworking.send(player, new JukeboxGuiOpenPayload(
 				pos,
 				loop,
+				blankDisc,
 				session.map(JukeboxSessionManager.SessionInfo::paused).orElse(false),
 				session.map(JukeboxSessionManager.SessionInfo::track),
 				session.map(JukeboxSessionManager.SessionInfo::positionMs).orElse(0L),
@@ -77,13 +81,11 @@ public class JukeboxGuiServer {
 	}
 
 	/**
-	 * Discos vanilla (Pigstep etc.) são itens valiosos: antes de a GUI/fila
-	 * sobrescrever o conteúdo da jukebox, devolve o disco ao jogador.
+	 * Discos físicos (vanilla, gravados, virgens) são do jogador: antes de a GUI
+	 * trocar o conteúdo da jukebox, devolve o disco a ele. Virtuais só somem.
 	 */
-	private static void rescueVanillaDisc(ServerPlayerEntity player, JukeboxBlockEntity jukebox) {
-		net.minecraft.item.ItemStack inside = jukebox.getStack();
-		if (!inside.isEmpty()
-				&& inside.get(com.duck.simplemusicbox.component.ModComponents.TRACK) == null) {
+	private static void returnPhysicalDisc(ServerPlayerEntity player, JukeboxBlockEntity jukebox) {
+		if (Discs.isPhysical(jukebox.getStack())) {
 			player.getInventory().offerOrDrop(jukebox.emptyStack());
 		}
 	}
@@ -101,9 +103,15 @@ public class JukeboxGuiServer {
 		switch (payload.action()) {
 			case PLAY -> {
 				if (jukebox != null) {
-					rescueVanillaDisc(player, jukebox);
-					SimpleMusicBox.trackCache().readHeader(payload.argument()).ifPresent(track ->
-							jukebox.setStack(MusicCommand.createDisc(track)));
+					SimpleMusicBox.trackCache().readHeader(payload.argument()).ifPresent(track -> {
+						if (Discs.isBlank(jukebox.getStack())) {
+							// Grava o Disco Virgem: vira um disco físico com a faixa
+							jukebox.setStack(Discs.recorded(track));
+						} else {
+							returnPhysicalDisc(player, jukebox);
+							jukebox.setStack(Discs.virtual(track));
+						}
+					});
 					sendOpen(player, world, pos);
 				}
 			}
@@ -116,7 +124,7 @@ public class JukeboxGuiServer {
 			}
 			case SKIP -> {
 				if (jukebox != null) {
-					rescueVanillaDisc(player, jukebox);
+					returnPhysicalDisc(player, jukebox);
 				}
 				JukeboxSessionManager.skip(world, pos);
 				sendOpen(player, world, pos);
@@ -128,6 +136,7 @@ public class JukeboxGuiServer {
 			case EJECT -> {
 				// Pela GUI o disco vai direto para o inventário (útil com /player,
 				// longe do bloco); o clique vanilla continua ejetando no mundo.
+				// Disco virtual sai vazio (mixin): só para a música.
 				if (jukebox != null) {
 					net.minecraft.item.ItemStack disc = jukebox.emptyStack();
 					if (!disc.isEmpty()) {

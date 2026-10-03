@@ -2,6 +2,7 @@ package com.duck.simplemusicbox.mixin;
 
 import com.duck.simplemusicbox.component.ModComponents;
 import com.duck.simplemusicbox.component.TrackData;
+import com.duck.simplemusicbox.item.Discs;
 import com.duck.simplemusicbox.playback.JukeboxLoopAccess;
 import com.duck.simplemusicbox.playback.JukeboxSessionManager;
 import net.minecraft.block.entity.JukeboxBlockEntity;
@@ -15,6 +16,7 @@ import org.spongepowered.asm.mixin.Unique;
 import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.injection.Inject;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
+import org.spongepowered.asm.mixin.injection.callback.CallbackInfoReturnable;
 
 /**
  * Toda mudança no disco da jukebox (inserir pelo jogador, funil, ejetar,
@@ -71,12 +73,37 @@ public abstract class JukeboxBlockEntityMixin implements JukeboxLoopAccess {
 		}
 		BlockPos pos = self.getPos();
 		TrackData track = stack.get(ModComponents.TRACK);
-		if (track != null) {
+		if (Discs.isBlank(stack)) {
+			// Disco Virgem não toca: espera a GUI gravar uma faixa nele.
+			JukeboxSessionManager.stop(world, pos);
+			self.getManager().stopPlaying(world, self.getCachedState());
+		} else if (track != null) {
 			if (!JukeboxSessionManager.isPlayingTrack(world, pos, track)) {
 				JukeboxSessionManager.start(world, pos, track);
 			}
 		} else if (stack.isEmpty()) {
 			JukeboxSessionManager.stop(world, pos);
+		}
+	}
+
+	/**
+	 * Disco virtual não vira item: sai da jukebox como nada, seja pela GUI
+	 * (emptyStack), funil ou qualquer outro caminho que passe por decreaseStack.
+	 */
+	@Inject(method = "decreaseStack(I)Lnet/minecraft/item/ItemStack;", at = @At("RETURN"), cancellable = true)
+	private void simple_musicbox$discardVirtualOnTake(int amount, CallbackInfoReturnable<ItemStack> cir) {
+		if (Discs.isVirtual(cir.getReturnValue())) {
+			cir.setReturnValue(ItemStack.EMPTY);
+		}
+	}
+
+	/** Clique para ejetar e quebrar o bloco: o disco virtual some em vez de cair no chão. */
+	@Inject(method = "dropRecord", at = @At("HEAD"), cancellable = true)
+	private void simple_musicbox$discardVirtualOnDrop(CallbackInfo ci) {
+		JukeboxBlockEntity self = (JukeboxBlockEntity) (Object) this;
+		if (self.getWorld() instanceof ServerWorld && Discs.isVirtual(self.getStack())) {
+			self.setStack(ItemStack.EMPTY);
+			ci.cancel();
 		}
 	}
 }

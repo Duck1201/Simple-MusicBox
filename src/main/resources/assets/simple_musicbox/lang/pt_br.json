@@ -1,10 +1,10 @@
 {
 	"item.simple_musicbox.music_disc_custom": "Disco de Música Personalizado",
-	"item.simple_musicbox.music_disc_custom.empty": "Vazio — use /music <url>",
+	"item.simple_musicbox.music_disc_custom.empty": "Virgem — coloque numa jukebox e escolha uma faixa para gravar",
 	"jukebox_song.simple_musicbox.custom": "Simple MusicBox",
 	"simple_musicbox.command.downloading": "Baixando a música, aguarde...",
 	"simple_musicbox.command.added": "Música disponível na jukebox: %s",
-	"simple_musicbox.command.error.invalid_url": "Isso não parece um link do YouTube.",
+	"simple_musicbox.command.error.invalid_url": "Isso não parece um link de faixa do YouTube ou do Spotify.",
 	"simple_musicbox.command.error.not_found": "Nenhuma faixa reproduzível encontrada nesse link.",
 	"simple_musicbox.command.error.too_long": "A música é longa demais (máx. %s minutos).",
 	"simple_musicbox.command.error.live": "Transmissões ao vivo não podem virar disco.",
@@ -22,10 +22,14 @@
 	"simple_musicbox.gui.loop_off": "Loop: off",
 	"simple_musicbox.command.error.no_jukebox": "Nenhuma jukebox num raio de %s blocos.",
 	"simple_musicbox.gui.search": "buscar no cache...",
-	"simple_musicbox.gui.url": "cole uma URL do YouTube...",
+	"simple_musicbox.gui.url": "cole um link do YouTube ou Spotify...",
 	"simple_musicbox.gui.download": "Baixar",
 	"simple_musicbox.gui.playing_tag": "tocando agora",
 	"simple_musicbox.gui.paused_tag": "pausada",
 	"simple_musicbox.loop.enabled": "🔁 Loop ativado",
-	"simple_musicbox.loop.disabled": "Loop desativado"
+	"simple_musicbox.loop.disabled": "Loop desativado",
+	"item.simple_musicbox.music_disc_blank": "Disco Virgem",
+	"simple_musicbox.command.error.no_match": "Não achei essa música no YouTube com uma duração compatível.",
+	"simple_musicbox.command.error.spotify_only_tracks": "Só links de faixa do Spotify são aceitos (não álbuns ou playlists).",
+	"simple_musicbox.gui.blank_disc": "Disco virgem: escolha uma faixa para gravar"
 }

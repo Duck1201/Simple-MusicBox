@@ -11,12 +11,14 @@ import java.util.ArrayList;
 import java.util.List;
 
 /**
- * Formato .smb: cabeçalho (magic, videoId, título, duração) seguido de frames
- * Opus (20 ms, 48 kHz estéreo) prefixados por tamanho (u16). Um tamanho 0
- * marca o fim — arquivos sem esse marcador são considerados truncados.
+ * Formato .smb: cabeçalho (magic, videoId, título, duração e, no SMB2, o id do
+ * Spotify) seguido de frames Opus (20 ms, 48 kHz estéreo) prefixados por
+ * tamanho (u16). Um tamanho 0 marca o fim — arquivos sem esse marcador são
+ * considerados truncados. Arquivos SMB1 (mod 1.0) continuam legíveis.
  */
 public final class SmbFileFormat {
-	private static final int MAGIC = 0x534D4231; // "SMB1"
+	private static final int MAGIC_V1 = 0x534D4231; // "SMB1"
+	private static final int MAGIC = 0x534D4232; // "SMB2"
 
 	public record SmbFile(TrackData track, List<byte[]> frames) {
 	}
@@ -30,6 +32,7 @@ public final class SmbFileFormat {
 		data.writeUTF(track.videoId());
 		data.writeUTF(track.title());
 		data.writeLong(track.durationMs());
+		data.writeUTF(track.spotifyId());
 		for (byte[] frame : frames) {
 			data.writeShort(frame.length);
 			data.write(frame);
@@ -40,17 +43,12 @@ public final class SmbFileFormat {
 
 	public static SmbFile read(InputStream in) throws IOException {
 		DataInputStream data = new DataInputStream(in);
-		if (data.readInt() != MAGIC) {
-			throw new IOException("Not a Simple MusicBox track file");
-		}
-		String videoId = data.readUTF();
-		String title = data.readUTF();
-		long durationMs = data.readLong();
+		TrackData track = readHeader(data);
 		List<byte[]> frames = new ArrayList<>();
 		while (true) {
 			int length = data.readUnsignedShort();
 			if (length == 0) {
-				return new SmbFile(new TrackData(videoId, title, durationMs), frames);
+				return new SmbFile(track, frames);
 			}
 			byte[] frame = new byte[length];
 			data.readFully(frame);
@@ -60,14 +58,19 @@ public final class SmbFileFormat {
 
 	/** Lê apenas o cabeçalho, sem carregar os frames. */
 	public static TrackData readHeader(InputStream in) throws IOException {
-		DataInputStream data = new DataInputStream(in);
-		if (data.readInt() != MAGIC) {
+		return readHeader(new DataInputStream(in));
+	}
+
+	private static TrackData readHeader(DataInputStream data) throws IOException {
+		int magic = data.readInt();
+		if (magic != MAGIC && magic != MAGIC_V1) {
 			throw new IOException("Not a Simple MusicBox track file");
 		}
 		String videoId = data.readUTF();
 		String title = data.readUTF();
 		long durationMs = data.readLong();
-		return new TrackData(videoId, title, durationMs);
+		String spotifyId = magic == MAGIC ? data.readUTF() : "";
+		return new TrackData(videoId, title, durationMs, spotifyId);
 	}
 
 	/** Valida que o arquivo termina com o marcador de fim. */

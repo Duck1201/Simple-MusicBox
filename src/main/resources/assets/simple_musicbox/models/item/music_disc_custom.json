@@ -2,5 +2,13 @@
 	"parent": "minecraft:item/generated",
 	"textures": {
 		"layer0": "simple_musicbox:item/music_disc_custom"
-	}
+	},
+	"overrides": [
+		{
+			"predicate": {
+				"simple_musicbox:blank": 1
+			},
+			"model": "simple_musicbox:item/music_disc_blank"
+		}
+	]
 }

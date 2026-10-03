@@ -27,6 +27,11 @@ loom {
 	splitEnvironmentSourceSets()
 
 	runs {
+		// Servidor de dev em pasta própria: sem isso, cliente e servidor dividem
+		// run/config e a biblioteca de faixas de um aparece no outro.
+		server {
+			runDir 'run/server'
+		}
 		client {
 			// Em sistemas com /tmp noexec o LWJGL não consegue carregar os natives dali
 			vmArg "-Dorg.lwjgl.system.SharedLibraryExtractPath=${System.getProperty('user.home')}/.gradle/tmp/lwjgl"
@@ -75,6 +80,10 @@ dependencies {
 		// Minecraft já traz slf4j; o LavaPlayer loga por ele.
 		exclude group: 'org.slf4j'
 	}
+	testImplementation platform('org.junit:junit-bom:5.11.4')
+	testImplementation 'org.junit.jupiter:junit-jupiter'
+	testRuntimeOnly 'org.junit.platform:junit-platform-launcher'
+
 	engineLibs("dev.lavalink.youtube:v2:${project.youtube_source_version}") {
 		exclude group: 'org.slf4j'
 		exclude group: 'dev.arbjerg', module: 'lavaplayer'
@@ -115,6 +124,10 @@ tasks.withType(JavaCompile).configureEach {
 	if (project.hasProperty('strict')) {
 		it.options.compilerArgs += ['-Werror']
 	}
+}
+
+test {
+	useJUnitPlatform()
 }
 
 checkstyle {

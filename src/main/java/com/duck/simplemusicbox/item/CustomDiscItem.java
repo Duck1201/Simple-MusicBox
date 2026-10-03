@@ -16,11 +16,19 @@ public class CustomDiscItem extends Item {
 	}
 
 	@Override
+	public Text getName(ItemStack stack) {
+		return stack.contains(ModComponents.TRACK) ? super.getName(stack)
+				: Text.translatable("item.simple_musicbox.music_disc_blank");
+	}
+
+	@Override
 	public void appendTooltip(ItemStack stack, TooltipContext context, List<Text> tooltip, TooltipType type) {
 		TrackData track = stack.get(ModComponents.TRACK);
 		if (track != null) {
 			tooltip.add(Text.literal(track.title()).formatted(Formatting.GRAY));
-			tooltip.add(Text.literal(track.formatDuration() + " • YouTube: " + track.videoId())
+			tooltip.add(Text.literal(track.formatDuration() + (track.fromSpotify()
+							? " • Spotify: " + track.spotifyId()
+							: " • YouTube: " + track.videoId()))
 					.formatted(Formatting.DARK_GRAY));
 		} else {
 			tooltip.add(Text.translatable("item.simple_musicbox.music_disc_custom.empty")

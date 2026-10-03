@@ -24,6 +24,8 @@ import java.util.Optional;
  * Limitado por maxCacheSizeMb com poda LRU (mtime = último uso).
  */
 public class TrackCache {
+	private static final long STALE_TEMP_MS = 10 * 60 * 1000;
+
 	private final Path directory;
 
 	public TrackCache(Path directory) {
@@ -32,6 +34,26 @@ public class TrackCache {
 			Files.createDirectories(directory);
 		} catch (IOException e) {
 			SimpleMusicBox.LOGGER.error("Could not create track cache directory {}", directory, e);
+		}
+		deleteStaleTempFiles();
+		prune();
+	}
+
+	/**
+	 * Remove .tmp de downloads interrompidos (servidor fechado no meio). Só os
+	 * antigos: um download em andamento para esta mesma pasta ainda escreve o seu.
+	 */
+	private void deleteStaleTempFiles() {
+		long cutoff = System.currentTimeMillis() - STALE_TEMP_MS;
+		try (var stream = Files.newDirectoryStream(directory, "*.tmp")) {
+			for (Path path : stream) {
+				if (Files.getLastModifiedTime(path).toMillis() < cutoff) {
+					Files.deleteIfExists(path);
+					SimpleMusicBox.LOGGER.info("Deleted stale temp file {}", path.getFileName());
+				}
+			}
+		} catch (IOException e) {
+			SimpleMusicBox.LOGGER.warn("Could not clean temp files in {}", directory, e);
 		}
 	}
 

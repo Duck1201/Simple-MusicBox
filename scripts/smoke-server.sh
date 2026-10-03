@@ -11,8 +11,8 @@ TIMEOUT="${1:-600}"
 LOG="$(mktemp -d)/server.log"
 FIFO="$(dirname "$LOG")/stdin"
 
-mkdir -p run
-echo "eula=true" > run/eula.txt
+mkdir -p run/server
+echo "eula=true" > run/server/eula.txt
 mkfifo "$FIFO"
 
 ./gradlew runServer --console=plain < "$FIFO" > "$LOG" 2>&1 &
@@ -57,7 +57,7 @@ wait_for 'youtube-source .*(versão mais recente|baixado)|youtube-source update 
 if grep -qE '\[[^]]*/ERROR\] \(simple_musicbox\)' "$LOG"; then
 	fail "o mod logou erro durante a inicialização"
 fi
-if ! ls run/config/simple_musicbox/libs/v2-*.jar > /dev/null 2>&1; then
+if ! ls run/server/config/simple_musicbox/libs/v2-*.jar > /dev/null 2>&1; then
 	fail "as libs do youtube-source não foram extraídas"
 fi
 
