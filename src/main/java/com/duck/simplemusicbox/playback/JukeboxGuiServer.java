@@ -8,8 +8,11 @@ import com.duck.simplemusicbox.net.JukeboxGuiActionPayload;
 import com.duck.simplemusicbox.net.JukeboxGuiOpenPayload;
 import net.fabricmc.fabric.api.event.player.UseBlockCallback;
 import net.fabricmc.fabric.api.networking.v1.ServerPlayNetworking;
+import net.minecraft.block.BlockState;
 import net.minecraft.block.Blocks;
+import net.minecraft.block.JukeboxBlock;
 import net.minecraft.block.entity.JukeboxBlockEntity;
+import net.minecraft.component.DataComponentTypes;
 import net.minecraft.server.network.ServerPlayerEntity;
 import net.minecraft.server.world.ServerWorld;
 import net.minecraft.text.Text;
@@ -31,8 +34,19 @@ public class JukeboxGuiServer {
 	private static final int COMMAND_SEARCH_RADIUS = 16;
 
 	public static void init() {
+		// Abre a GUI com shift + clique direito, ou com clique normal numa jukebox
+		// vazia. Com disco dentro, o clique normal segue o vanilla (ejeta/para); com
+		// um disco na mão, a jukebox vazia o recebe como sempre. O estado do bloco
+		// (HAS_RECORD) existe nos dois lados, então cliente e servidor concordam.
 		UseBlockCallback.EVENT.register((player, world, hand, hit) -> {
-			if (!player.isSneaking() || !world.getBlockState(hit.getBlockPos()).isOf(Blocks.JUKEBOX)) {
+			BlockState state = world.getBlockState(hit.getBlockPos());
+			if (!state.isOf(Blocks.JUKEBOX)) {
+				return ActionResult.PASS;
+			}
+			boolean emptyClick = !state.get(JukeboxBlock.HAS_RECORD)
+					&& !player.getMainHandStack().contains(DataComponentTypes.JUKEBOX_PLAYABLE)
+					&& !player.getOffHandStack().contains(DataComponentTypes.JUKEBOX_PLAYABLE);
+			if (!player.isSneaking() && !emptyClick) {
 				return ActionResult.PASS;
 			}
 			if (player instanceof ServerPlayerEntity serverPlayer && world instanceof ServerWorld serverWorld) {

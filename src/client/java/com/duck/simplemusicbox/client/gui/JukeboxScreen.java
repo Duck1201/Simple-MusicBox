@@ -304,7 +304,9 @@ public class JukeboxScreen extends Screen {
 				context.drawItem(DISC_ICON, listX + 5, rowY + 4);
 			}
 
-			String label = textRenderer.trimToWidth(track.title(), listWidth - 34 - RECORD_BUTTON_WIDTH - 4);
+			boolean showRecord = blankDiscCount() > 0;
+			String label = textRenderer.trimToWidth(track.title(),
+					listWidth - 34 - (showRecord ? RECORD_BUTTON_WIDTH + 4 : 0));
 			context.drawText(textRenderer, label, listX + 26, rowY + 3,
 					playing ? 0x55DCDC : 0xE8E8E8, false);
 			String subtitle = playing
@@ -314,7 +316,9 @@ public class JukeboxScreen extends Screen {
 					: track.formatDuration();
 			context.drawText(textRenderer, subtitle, listX + 26, rowY + 13,
 					playing ? 0x3FA8A8 : 0x777777, false);
-			drawRecordButton(context, rowY, mouseX, mouseY);
+			if (showRecord) {
+				drawRecordButton(context, rowY, mouseX, mouseY);
+			}
 		}
 
 		// Scrollbar
@@ -327,19 +331,20 @@ public class JukeboxScreen extends Screen {
 		}
 	}
 
-	/** Botão "Gravar" à direita da linha: gasta um Disco Virgem e entrega o disco da faixa. */
+	/**
+	 * Botão "Gravar" à direita da linha: gasta um Disco Virgem e entrega o disco
+	 * da faixa. Só aparece quando o jogador tem Disco Virgem (ou está no criativo).
+	 */
 	private void drawRecordButton(DrawContext context, int rowY, int mouseX, int mouseY) {
 		int x = recordButtonX();
 		int y = rowY + (ROW_HEIGHT - RECORD_BUTTON_HEIGHT) / 2;
-		boolean enabled = blankDiscCount() > 0;
-		boolean hovered = enabled && mouseX >= x && mouseX < x + RECORD_BUTTON_WIDTH
+		boolean hovered = mouseX >= x && mouseX < x + RECORD_BUTTON_WIDTH
 				&& mouseY >= y && mouseY < y + RECORD_BUTTON_HEIGHT;
-		context.fill(x, y, x + RECORD_BUTTON_WIDTH, y + RECORD_BUTTON_HEIGHT,
-				hovered ? 0xFF4A4A58 : enabled ? 0xFF33333D : 0xFF24242A);
-		context.drawBorder(x, y, RECORD_BUTTON_WIDTH, RECORD_BUTTON_HEIGHT, enabled ? 0xFF6A6A78 : 0xFF33333A);
+		context.fill(x, y, x + RECORD_BUTTON_WIDTH, y + RECORD_BUTTON_HEIGHT, hovered ? 0xFF4A4A58 : 0xFF33333D);
+		context.drawBorder(x, y, RECORD_BUTTON_WIDTH, RECORD_BUTTON_HEIGHT, 0xFF6A6A78);
 		Text label = Text.translatable("simple_musicbox.gui.record");
 		context.drawText(textRenderer, label, x + (RECORD_BUTTON_WIDTH - textRenderer.getWidth(label)) / 2,
-				y + 3, enabled ? 0xFFFFFF : 0x666666, false);
+				y + 3, 0xFFFFFF, false);
 	}
 
 	private int recordButtonX() {
@@ -374,12 +379,11 @@ public class JukeboxScreen extends Screen {
 			if (index >= 0 && index < filtered.size()) {
 				int rowY = listY + (index - scroll) * ROW_HEIGHT;
 				int buttonY = rowY + (ROW_HEIGHT - RECORD_BUTTON_HEIGHT) / 2;
-				boolean onRecord = mouseX >= recordButtonX() && mouseX < recordButtonX() + RECORD_BUTTON_WIDTH
+				boolean onRecord = blankDiscCount() > 0
+						&& mouseX >= recordButtonX() && mouseX < recordButtonX() + RECORD_BUTTON_WIDTH
 						&& mouseY >= buttonY && mouseY < buttonY + RECORD_BUTTON_HEIGHT;
 				if (onRecord) {
-					if (blankDiscCount() > 0) {
-						sendAction(JukeboxGuiActionPayload.Action.RECORD, filtered.get(index).videoId());
-					}
+					sendAction(JukeboxGuiActionPayload.Action.RECORD, filtered.get(index).videoId());
 				} else {
 					sendAction(JukeboxGuiActionPayload.Action.PLAY, filtered.get(index).videoId());
 				}

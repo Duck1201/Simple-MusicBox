@@ -72,12 +72,16 @@ Receita do Disco Virgem (bancada):
    [ ] [P] [ ]
 ```
 
-## GUI da jukebox (shift + clique-direito)
+## GUI da jukebox
+
+Abre com **clique-direito numa jukebox vazia** ou com **shift + clique-direito** em qualquer
+jukebox. Com um disco dentro, o clique normal faz o de sempre (ejeta); com um disco na mão, a
+jukebox vazia o recebe normalmente.
 
 Abre uma tela com a faixa atual e barra de progresso ao vivo, botões **Pausar** /
 **Parar** / **Avançar** / **Ejetar** / **Loop**, a lista de todas as faixas do cache do servidor
 (com busca), e um campo para baixar direto por link (YouTube ou Spotify). Clicar numa faixa
-toca na hora; o botão **Gravar** da linha cria um disco dela (gasta um Disco Virgem);
+toca na hora; o botão **Gravar** da linha (só aparece se você tiver Disco Virgem) cria um disco dela;
 **Ejetar** entrega o disco físico que estiver na jukebox.
 Também abre pelo chat com `/player` (jukebox mais próxima, raio de 16 blocos).
 
