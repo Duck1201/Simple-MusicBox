@@ -26,8 +26,8 @@ sinal de comparador etc.).
 1. `/music <url>` → o servidor resolve a faixa, decodifica para frames Opus e grava em
    `config/simple_musicbox/cache/<videoId>.smb` (a mesma URL não é baixada duas vezes).
 2. A faixa fica disponível na GUI de qualquer jukebox. Discos físicos (com o título da
-   faixa num data component `simple_musicbox:track`) **só nascem ejetando uma jukebox** —
-   inserir um disco o consome, e tocar até o fim também: sem farm de discos.
+   faixa num data component `simple_musicbox:track`) **só nascem ejetando uma jukebox**;
+   ao fim da faixa, o disco dentro dela é trocado pelo da próxima.
 3. Ao inserir na jukebox, o servidor abre uma "sessão" e envia aos jogadores num raio de
    64 blocos o pedido de reprodução; quem não tem a faixa no cache local pede os bytes,
    que chegam em chunks de ~60 KB com limite de vazão por tick.
@@ -38,8 +38,8 @@ sinal de comparador etc.).
 
 ## GUI da jukebox (shift + clique-direito)
 
-Abre uma tela com a faixa atual e barra de progresso ao vivo, botões **Parar** /
-**Avançar** / **Ejetar** / **Loop**, a lista de todas as faixas do cache do servidor
+Abre uma tela com a faixa atual e barra de progresso ao vivo, botões **Pausar** /
+**Parar** / **Avançar** / **Ejetar** / **Loop**, a lista de todas as faixas do cache do servidor
 (com busca), e um campo para baixar direto por URL. Clicar numa faixa toca na hora (o
 disco é materializado dentro da jukebox); **Ejetar** entrega o disco da faixa atual.
 Também abre pelo chat com `/player` (jukebox mais próxima, raio de 16 blocos).

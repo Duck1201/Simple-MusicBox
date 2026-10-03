@@ -7,18 +7,17 @@ Turn any jukebox into a music player. Paste a YouTube link, and everyone nearby 
 ## Features
 
 - **Music from YouTube links**: `/music <url>` downloads the track on the server and adds it to the jukebox library.
-- **Jukebox GUI** (shift + right-click a jukebox, or `/player` for the nearest one): current track with a live progress bar, Stop / Skip / Eject / Loop buttons, a searchable list of every downloaded track, and a field to download by URL.
+- **Jukebox GUI** (shift + right-click a jukebox, or `/player` for the nearest one): current track with a live progress bar, Pause / Stop / Skip / Eject / Loop buttons, a searchable list of every downloaded track, and a field to download by URL.
 - **Positional audio for everyone**: players within 64 blocks hear the music; it fades with distance and uses the vanilla "Jukebox/Note Blocks" volume slider. Particles, dancing allays and comparator output work like a vanilla disc.
 - **Join mid-song**: players who walk up while a song is playing hear it from the right point.
 - **Queue and loop**: without loop, the jukebox moves on to the next track in the library like a radio; with loop, it repeats the current track.
-- **Discs without farming**: physical discs only come from ejecting a jukebox, and inserting one consumes it.
+- **Physical discs**: eject a jukebox to get a disc of the current track, which you can carry around or put in another jukebox.
 - **Compact cache**: tracks are stored as Opus (~0.7 MB per minute) with an LRU size limit.
 
 ## Requirements
 
 - Minecraft 1.21.1, Fabric Loader 0.16+, [Fabric API](https://modrinth.com/mod/fabric-api)
 - Must be installed on **both the server and every client** that wants to hear the music (vanilla clients cannot play arbitrary audio).
-- Single-player works too (the integrated server does the downloading).
 
 ## Network access (please read)
 
@@ -56,4 +55,4 @@ Audio is handled by [LavaPlayer](https://github.com/lavalink-devs/lavaplayer) an
 
 Please respect the rights of the content you play. This mod is not affiliated with YouTube or Google.
 
-*This project was developed with the help of generative AI.*
+*AI disclosure: this mod's code, its textures/icon and this description were created with the help of generative AI.*
