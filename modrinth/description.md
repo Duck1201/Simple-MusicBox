@@ -18,6 +18,7 @@ Turn any jukebox into a music player. Paste a YouTube link, and everyone nearby 
 
 - Minecraft 1.21.1, Fabric Loader 0.16+, [Fabric API](https://modrinth.com/mod/fabric-api)
 - Must be installed on **both the server and every client** that wants to hear the music (vanilla clients cannot play arbitrary audio).
+- Works in single-player and LAN too; there, each world has its own track library, saved inside the world folder.
 
 ## Network access (please read)
 
@@ -38,7 +39,7 @@ No player data is uploaded anywhere.
 | `audibleRadius` | 64.0 | Radius (blocks) in which players receive the audio |
 | `stereo` | true | (Client) `true` = stereo, volume fades with distance; `false` = mono with full 3D direction like a vanilla disc |
 | `opusBitrate` | 96000 | Bitrate of stored audio (bits/s). `0` keeps LavaPlayer's default output |
-| `maxCacheSizeMb` | 512 | Track cache limit (server and client each). `0` = unlimited |
+| `maxCacheSizeMb` | 512 | Track cache limit (server or each single-player world, and client). `0` = unlimited |
 | `autoUpdateYoutubeSource` | true | (Server) Auto-update the YouTube extractor on start |
 | `youtubeClients` | ANDROID, IOS, ... | (Server) YouTube clients tried in order. If downloads break, reordering this can help without a mod update |
 | `networkChunkSize` / `chunksPerTick` | 60000 / 8 | Audio transfer tuning |

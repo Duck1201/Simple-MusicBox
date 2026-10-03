@@ -34,6 +34,10 @@ loom {
 			if (project.hasProperty('quickplay')) {
 				programArgs '--quickPlayMultiplayer', project.getProperty('quickplay')
 			}
+			// ./gradlew runClient -PquickplayWorld="Novo mundo" abre direto um mundo single-player
+			if (project.hasProperty('quickplayWorld')) {
+				programArgs '--quickPlaySingleplayer', project.getProperty('quickplayWorld')
+			}
 		}
 	}
 

@@ -15,6 +15,7 @@ import net.fabricmc.fabric.api.networking.v1.PayloadTypeRegistry;
 import net.fabricmc.fabric.api.networking.v1.ServerPlayNetworking;
 import net.fabricmc.loader.api.FabricLoader;
 import net.minecraft.util.Identifier;
+import net.minecraft.util.WorldSavePath;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -26,13 +27,14 @@ public class SimpleMusicBox implements ModInitializer {
 	public static final String MOD_ID = "simple_musicbox";
 	public static final Logger LOGGER = LoggerFactory.getLogger(MOD_ID);
 
-	private static TrackCache trackCache;
+	private static volatile TrackCache trackCache;
 	private static TrackDownloader downloader;
 
 	public static Identifier id(String path) {
 		return Identifier.of(MOD_ID, path);
 	}
 
+	/** Biblioteca de faixas do servidor atual (muda a cada mundo no single-player). */
 	public static TrackCache trackCache() {
 		return trackCache;
 	}
@@ -40,7 +42,7 @@ public class SimpleMusicBox implements ModInitializer {
 	/** Criado sob demanda: o AudioPlayerManager do LavaPlayer só é necessário onde /music é usado. */
 	public static synchronized TrackDownloader downloader() {
 		if (downloader == null) {
-			downloader = new TrackDownloader(trackCache);
+			downloader = new TrackDownloader(SimpleMusicBox::trackCache);
 		}
 		return downloader;
 	}
@@ -62,7 +64,16 @@ public class SimpleMusicBox implements ModInitializer {
 		PayloadTypeRegistry.playC2S().register(com.duck.simplemusicbox.net.JukeboxGuiActionPayload.ID,
 				com.duck.simplemusicbox.net.JukeboxGuiActionPayload.CODEC);
 
-		trackCache = new TrackCache(FabricLoader.getInstance().getConfigDir().resolve("simple_musicbox/cache"));
+		trackCache = new TrackCache(dedicatedLibraryDir());
+		// Servidor dedicado: biblioteca em config/. Single-player/LAN (servidor
+		// integrado): uma biblioteca por mundo, dentro do save.
+		net.fabricmc.fabric.api.event.lifecycle.v1.ServerLifecycleEvents.SERVER_STARTING.register(server -> {
+			Path dir = server.isDedicated()
+					? dedicatedLibraryDir()
+					: server.getSavePath(WorldSavePath.ROOT).resolve("simple_musicbox/cache").normalize();
+			trackCache = new TrackCache(dir);
+			LOGGER.info("Track library: {}", dir);
+		});
 
 		MusicCommand.register();
 		JukeboxSessionManager.init();
@@ -94,6 +105,10 @@ public class SimpleMusicBox implements ModInitializer {
 		});
 
 		LOGGER.info("Simple MusicBox initialized");
+	}
+
+	private static Path dedicatedLibraryDir() {
+		return FabricLoader.getInstance().getConfigDir().resolve("simple_musicbox/cache");
 	}
 
 	/**

@@ -10,6 +10,7 @@ import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
+import java.util.function.Supplier;
 import java.util.regex.Pattern;
 
 /**
@@ -26,12 +27,16 @@ public class TrackDownloader {
 			"signature", "n function", "please sign in", "not a bot",
 	};
 
-	private final TrackCache cache;
-	private final ExecutorService executor;
-	private final Map<String, CompletableFuture<TrackData>> inFlight = new ConcurrentHashMap<>();
+	/** Mesma URL na mesma biblioteca = mesmo download; outra biblioteca (outro mundo) baixa à parte. */
+	private record DownloadKey(TrackCache cache, String url) {
+	}
 
-	public TrackDownloader(TrackCache cache) {
-		this.cache = cache;
+	private final Supplier<TrackCache> currentCache;
+	private final ExecutorService executor;
+	private final Map<DownloadKey, CompletableFuture<TrackData>> inFlight = new ConcurrentHashMap<>();
+
+	public TrackDownloader(Supplier<TrackCache> currentCache) {
+		this.currentCache = currentCache;
 		this.executor = Executors.newSingleThreadExecutor(runnable -> {
 			Thread thread = new Thread(runnable, "SimpleMusicBox-Downloader");
 			thread.setDaemon(true);
@@ -44,15 +49,17 @@ public class TrackDownloader {
 			return CompletableFuture.failedFuture(
 					new DownloadException(DownloadException.Kind.INVALID_URL, url));
 		}
-		return inFlight.computeIfAbsent(url.trim(), key -> {
+		// A biblioteca é fixada no pedido: se o jogador trocar de mundo durante o
+		// download, a faixa vai para o mundo onde foi pedida.
+		return inFlight.computeIfAbsent(new DownloadKey(currentCache.get(), url.trim()), key -> {
 			CompletableFuture<TrackData> future = new CompletableFuture<>();
-			executor.submit(() -> run(key, future));
+			executor.submit(() -> run(key.url(), key.cache(), future));
 			future.whenComplete((result, error) -> inFlight.remove(key));
 			return future;
 		});
 	}
 
-	private void run(String url, CompletableFuture<TrackData> future) {
+	private void run(String url, TrackCache cache, CompletableFuture<TrackData> future) {
 		try {
 			ModConfig config = ModConfig.get();
 			AudioEngine engine = EngineLoader.getEngine();

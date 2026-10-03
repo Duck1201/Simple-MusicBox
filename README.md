@@ -24,7 +24,9 @@ sinal de comparador etc.).
 ## Como funciona
 
 1. `/music <url>` → o servidor resolve a faixa, decodifica para frames Opus e grava em
-   `config/simple_musicbox/cache/<videoId>.smb` (a mesma URL não é baixada duas vezes).
+   `<biblioteca>/<videoId>.smb` (a mesma URL não é baixada duas vezes). A biblioteca fica em
+   `config/simple_musicbox/cache` no servidor dedicado; no single-player (e LAN) cada mundo
+   tem a sua, em `<pasta do mundo>/simple_musicbox/cache`.
 2. A faixa fica disponível na GUI de qualquer jukebox. Discos físicos (com o título da
    faixa num data component `simple_musicbox:track`) **só nascem ejetando uma jukebox**;
    ao fim da faixa, o disco dentro dela é trocado pelo da próxima.
@@ -61,7 +63,7 @@ Também abre pelo chat com `/player` (jukebox mais próxima, raio de 16 blocos).
 | `chunksPerTick` | 8 | Chunks enviados por tick para cada jogador |
 | `stereo` | true | (Cliente) `true` = estéreo com volume caindo pela distância, sem direção esquerda/direita; `false` = mono posicional como um disco vanilla (o OpenAL só espacializa fontes mono) |
 | `opusBitrate` | 96000 | Bitrate do áudio armazenado, em bits/s (~0,7 MB/min). `0` desliga o re-encode e usa a saída padrão do LavaPlayer (~140 kbps). Só afeta downloads novos |
-| `maxCacheSizeMb` | 512 | Limite do cache de faixas em MB (cada lado tem o seu). Excedeu, as faixas tocadas há mais tempo são apagadas (LRU). `0` = ilimitado |
+| `maxCacheSizeMb` | 512 | Limite do cache de faixas em MB (servidor/cada mundo e cliente têm o seu). Excedeu, as faixas tocadas há mais tempo são apagadas (LRU). `0` = ilimitado |
 | `autoUpdateYoutubeSource` | true | (Servidor) A cada início, verifica e baixa automaticamente a versão mais nova do extrator do YouTube (veja abaixo) |
 | `youtubeClients` | ANDROID, IOS, ... | (Servidor) Clients do YouTube tentados em ordem. Quando o YouTube bloqueia um, dá para reordenar sem recompilar |
 
