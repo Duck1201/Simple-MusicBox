@@ -1,6 +1,7 @@
 plugins {
 	id 'fabric-loom' version '1.10.5'
 	id 'com.gradleup.shadow' version '8.3.9'
+	id 'checkstyle'
 }
 
 version = project.mod_version
@@ -104,6 +105,18 @@ processResources {
 
 tasks.withType(JavaCompile).configureEach {
 	it.options.release = 21
+	// -processing: anotações do Mixin não têm processador, aviso inofensivo
+	it.options.compilerArgs += ['-Xlint:all,-processing']
+	// No CI (./gradlew build -Pstrict) qualquer aviso do compilador quebra o build
+	if (project.hasProperty('strict')) {
+		it.options.compilerArgs += ['-Werror']
+	}
+}
+
+checkstyle {
+	toolVersion = '14.3.0'
+	configFile = file('config/checkstyle/checkstyle.xml')
+	maxWarnings = 0
 }
 
 java {

@@ -2,7 +2,6 @@ package com.duck.simplemusicbox.playback;
 
 import com.duck.simplemusicbox.SimpleMusicBox;
 import com.duck.simplemusicbox.command.MusicCommand;
-import com.duck.simplemusicbox.component.TrackData;
 import com.duck.simplemusicbox.net.JukeboxGuiActionPayload;
 import com.duck.simplemusicbox.net.JukeboxGuiOpenPayload;
 import net.fabricmc.fabric.api.event.player.UseBlockCallback;

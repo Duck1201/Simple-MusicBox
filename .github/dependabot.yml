@@ -1,0 +1,7 @@
+# Mantém as versões das actions dos workflows atualizadas (abre PRs mensais).
+version: 2
+updates:
+  - package-ecosystem: github-actions
+    directory: /
+    schedule:
+      interval: monthly

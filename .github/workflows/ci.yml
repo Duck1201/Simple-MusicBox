@@ -1,0 +1,76 @@
+# Verificações de todo push/PR. Também é chamado pelo release.yml antes de publicar.
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_call:
+
+permissions:
+  contents: read
+
+jobs:
+  lint:
+    name: Lint
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+
+      - name: Validar o Gradle wrapper
+        uses: gradle/actions/wrapper-validation@v6
+
+      - name: actionlint (workflows)
+        run: |
+          bash <(curl -sSfL https://raw.githubusercontent.com/rhysd/actionlint/v1.7.12/scripts/download-actionlint.bash) 1.7.12
+          ./actionlint -color
+
+      - name: shellcheck (scripts)
+        run: shellcheck scripts/*.sh
+
+      - name: Recursos (JSON, traduções, mixins)
+        run: python3 scripts/check-resources.py
+
+  build:
+    name: Build + Checkstyle
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+
+      - uses: actions/setup-java@v6
+        with:
+          distribution: temurin
+          java-version: 21
+
+      - uses: gradle/actions/setup-gradle@v6
+
+      # -Pstrict: avisos do compilador viram erro. `build` inclui o Checkstyle.
+      - name: Build
+        run: ./gradlew build -Pstrict
+
+      - name: Verificar o jar
+        run: scripts/verify-jar.sh "$(ls dist/*.jar)"
+
+      - uses: actions/upload-artifact@v7
+        with:
+          name: simple-musicbox-jar
+          path: dist/*.jar
+          if-no-files-found: error
+
+  smoke:
+    name: Smoke test (servidor)
+    needs: build
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v7
+
+      - uses: actions/setup-java@v6
+        with:
+          distribution: temurin
+          java-version: 21
+
+      - uses: gradle/actions/setup-gradle@v6
+
+      - name: Subir o servidor dedicado com o mod
+        run: scripts/smoke-server.sh 600

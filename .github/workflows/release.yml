@@ -1,5 +1,6 @@
 # Lançamento: git tag -a v1.2.3 -m "changelog" && git push origin v1.2.3
-# Compila com a versão da tag, cria o GitHub Release e publica no Modrinth.
+# Roda todo o CI; se passar, compila com a versão da tag, cria o GitHub Release
+# e publica no Modrinth. Tags com -alpha/-beta/-rc viram versões de teste.
 name: Release
 
 on:
@@ -8,13 +9,57 @@ on:
       - 'v*'
 
 permissions:
-  contents: write
+  contents: read
 
 jobs:
+  ci:
+    uses: ./.github/workflows/ci.yml
+
   release:
+    needs: ci
     runs-on: ubuntu-latest
+    permissions:
+      contents: write
     steps:
       - uses: actions/checkout@v7
+        with:
+          fetch-depth: 0 # histórico da main, para checar de onde vem a tag
+
+      - name: Validar a tag
+        run: |
+          if [[ ! "$GITHUB_REF_NAME" =~ ^v([0-9]+\.[0-9]+\.[0-9]+(-[0-9A-Za-z.]+)?)$ ]]; then
+            echo "::error::A tag '$GITHUB_REF_NAME' não é uma versão válida (ex.: v1.2.3 ou v1.2.3-beta.1)"
+            exit 1
+          fi
+          version="${BASH_REMATCH[1]}"
+
+          # Só publica o que já está na main (evita lançar commit de branch solta)
+          git fetch origin main
+          if ! git merge-base --is-ancestor "$GITHUB_SHA" origin/main; then
+            echo "::error::O commit da tag não está na main. Faça merge na main antes de lançar."
+            exit 1
+          fi
+
+          # O checkout não traz a mensagem da tag anotada; ela vira o changelog.
+          git fetch --force origin "refs/tags/$GITHUB_REF_NAME:refs/tags/$GITHUB_REF_NAME"
+          git tag -l --format='%(contents)' "$GITHUB_REF_NAME" > changelog.md
+          if [[ "$(git cat-file -t "$GITHUB_REF_NAME")" != "tag" || ! -s changelog.md ]]; then
+            echo "::error::Use uma tag anotada com o changelog: git tag -a $GITHUB_REF_NAME -m \"...\""
+            exit 1
+          fi
+
+          case "$version" in
+            *-alpha*) type=alpha ;;
+            *-beta* | *-rc*) type=beta ;;
+            *) type=release ;;
+          esac
+
+          {
+            echo "VERSION=$version"
+            echo "VERSION_TYPE=$type"
+          } >> "$GITHUB_ENV"
+          echo "Versão $version ($type)"
+          cat changelog.md
 
       - uses: actions/setup-java@v6
         with:
@@ -24,26 +69,21 @@ jobs:
       - uses: gradle/actions/setup-gradle@v6
 
       - name: Build
-        run: |
-          echo "VERSION=${GITHUB_REF_NAME#v}" >> "$GITHUB_ENV"
-          ./gradlew build -Pmod_version="${GITHUB_REF_NAME#v}"
+        run: ./gradlew build -Pstrict -Pmod_version="$VERSION"
 
-      # O checkout não traz a mensagem da tag anotada; ela vira o changelog.
-      - name: Changelog
-        run: |
-          git fetch --force origin "refs/tags/$GITHUB_REF_NAME:refs/tags/$GITHUB_REF_NAME"
-          git tag -l --format='%(contents)' "$GITHUB_REF_NAME" > changelog.md
-          cat changelog.md
+      - name: Verificar o jar
+        run: scripts/verify-jar.sh "dist/simple-musicbox-$VERSION.jar" "$VERSION"
 
       - uses: Kir-Antipov/mc-publish@v3.3
         with:
           modrinth-id: eYOBjKLB
           modrinth-token: ${{ secrets.MODRINTH_TOKEN }}
           github-token: ${{ secrets.GITHUB_TOKEN }}
-          files: dist/*.jar
+          github-prerelease: ${{ env.VERSION_TYPE != 'release' }}
+          files: dist/simple-musicbox-${{ env.VERSION }}.jar
           name: Simple MusicBox ${{ env.VERSION }}
           version: ${{ env.VERSION }}
-          version-type: release
+          version-type: ${{ env.VERSION_TYPE }}
           changelog-file: changelog.md
           loaders: fabric
           game-versions: 1.21.1

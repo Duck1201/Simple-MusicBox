@@ -1,6 +1,8 @@
 package com.duck.simplemusicbox.audio;
 
 public class DownloadException extends RuntimeException {
+	private static final long serialVersionUID = 1L;
+
 	public enum Kind {
 		INVALID_URL,
 		NOT_FOUND,

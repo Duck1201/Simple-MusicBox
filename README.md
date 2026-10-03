@@ -63,6 +63,7 @@ Também abre pelo chat com `/player` (jukebox mais próxima, raio de 16 blocos).
 | `opusBitrate` | 96000 | Bitrate do áudio armazenado, em bits/s (~0,7 MB/min). `0` desliga o re-encode e usa a saída padrão do LavaPlayer (~140 kbps). Só afeta downloads novos |
 | `maxCacheSizeMb` | 512 | Limite do cache de faixas em MB (cada lado tem o seu). Excedeu, as faixas tocadas há mais tempo são apagadas (LRU). `0` = ilimitado |
 | `autoUpdateYoutubeSource` | true | (Servidor) A cada início, verifica e baixa automaticamente a versão mais nova do extrator do YouTube (veja abaixo) |
+| `youtubeClients` | ANDROID, IOS, ... | (Servidor) Clients do YouTube tentados em ordem. Quando o YouTube bloqueia um, dá para reordenar sem recompilar |
 
 ## Auto-atualização do extrator do YouTube
 
@@ -87,6 +88,31 @@ correção da comunidade sair — o mod se atualiza sozinho.
 ./gradlew runClient      # cliente de desenvolvimento
 ./gradlew runServer      # servidor de desenvolvimento
 ./gradlew runClient -Pquickplay=localhost:25565   # cliente conectando direto num servidor
+```
+
+O jar final também é copiado para `dist/`.
+
+### Verificações (as mesmas do CI)
+
+```bash
+./gradlew build -Pstrict           # avisos do compilador viram erro + Checkstyle
+python3 scripts/check-resources.py # JSON, paridade en_us/pt_br, chaves usadas, mixins
+scripts/smoke-server.sh            # sobe o servidor dedicado e confere a inicialização
+scripts/verify-jar.sh dist/simple-musicbox-<versão>.jar <versão>
+```
+
+### CI/CD
+
+- **CI** (`.github/workflows/ci.yml`, todo push/PR na main): lint (actionlint, shellcheck,
+  validação do Gradle wrapper, recursos), build estrito com Checkstyle, verificação do jar e
+  smoke test do servidor.
+- **Release** (`.github/workflows/release.yml`): ao dar push numa tag anotada `v*`, roda o
+  CI inteiro, confere que a tag é semver e está na main, compila com a versão da tag, cria o
+  GitHub Release e publica no Modrinth (secret `MODRINTH_TOKEN`). Sufixos `-alpha`/`-beta`/`-rc`
+  viram versões de teste.
+
+```bash
+git tag -a v1.0.1 -m "Changelog da versão" && git push origin v1.0.1
 ```
 
 O jar final embute o LavaPlayer e o plugin youtube-source (shadow, com jackson/httpclient

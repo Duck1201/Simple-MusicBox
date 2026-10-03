@@ -40,7 +40,7 @@ public class OpusAudioStream implements AudioStream {
 		this.stereo = stereo;
 		this.outputBytesPerFrame = SAMPLES_PER_FRAME * (stereo ? CHANNELS : 1) * 2;
 		this.format = new AudioFormat(SAMPLE_RATE, 16, stereo ? CHANNELS : 1, true, false);
-		this.index = (int) Math.clamp(offsetMs / 20, 0, frames.size());
+		this.index = Math.clamp(offsetMs / 20, 0, frames.size());
 		try {
 			this.decoder = new OpusDecoder(SAMPLE_RATE, CHANNELS);
 		} catch (OpusException e) {
