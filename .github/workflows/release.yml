@@ -74,7 +74,23 @@ jobs:
       - name: Verificar o jar
         run: scripts/verify-jar.sh "dist/simple-musicbox-$VERSION.jar" "$VERSION"
 
+      # Upload no Modrinth não é idempotente: um re-run (ou um retry após timeout
+      # que o servidor aceitou) duplicaria a versão. Se ela já existe, pula.
+      - name: Versão já publicada no Modrinth?
+        env:
+          MODRINTH_TOKEN: ${{ secrets.MODRINTH_TOKEN }}
+        run: |
+          published="$(curl -sSf -H "Authorization: $MODRINTH_TOKEN" \
+            -H "User-Agent: Duck1201/Simple-MusicBox (release workflow)" \
+            https://api.modrinth.com/v2/project/eYOBjKLB/version \
+            | python3 -c 'import json,sys; print(any(v["version_number"] == sys.argv[1] for v in json.load(sys.stdin)))' "$VERSION")"
+          if [[ "$published" == "True" ]]; then
+            echo "::warning::A versão $VERSION já está no Modrinth; pulando a publicação."
+            echo "ALREADY_PUBLISHED=true" >> "$GITHUB_ENV"
+          fi
+
       - uses: Kir-Antipov/mc-publish@v3.3
+        if: env.ALREADY_PUBLISHED != 'true'
         with:
           modrinth-id: eYOBjKLB
           modrinth-token: ${{ secrets.MODRINTH_TOKEN }}
@@ -89,3 +105,4 @@ jobs:
           game-versions: 1.21.1
           java: 21
           dependencies: fabric-api(required)
+          retry-attempts: 0
