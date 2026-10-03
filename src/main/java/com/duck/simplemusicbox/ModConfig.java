@@ -14,7 +14,18 @@ public class ModConfig {
 	private static ModConfig instance;
 
 	/** Duração máxima aceita para uma faixa, em segundos. */
-	public int maxDurationSeconds = 600;
+	public int maxDurationSeconds = 900;
+	/**
+	 * (Servidor) Nível de permissão para usar /music: 0 = todos, 2 = só
+	 * operadores. Com 2, jogadores baixam músicas só pela GUI da jukebox.
+	 * O console sempre pode.
+	 */
+	public int musicCommandPermission = 0;
+	/**
+	 * (Servidor) Baixar pela GUI exige um Disco Virgem na jukebox, que é
+	 * gravado com a música baixada — cada música nova custa um disco.
+	 */
+	public boolean requireBlankDiscToDownload = false;
 	/** Raio (em blocos) em que os jogadores recebem o áudio da jukebox. */
 	public double audibleRadius = 64.0;
 	/** Tamanho de cada chunk de áudio enviado pela rede, em bytes. */

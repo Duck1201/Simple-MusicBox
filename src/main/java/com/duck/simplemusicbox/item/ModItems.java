@@ -22,6 +22,12 @@ public class ModItems {
 					.jukeboxPlayable(CUSTOM_SONG_KEY))
 	);
 
+	public static final Item BLANK_DISC = Registry.register(
+			Registries.ITEM,
+			SimpleMusicBox.id("blank_disc"),
+			new BlankDiscItem(new Item.Settings().maxCount(16))
+	);
+
 	public static void register() {
 	}
 }

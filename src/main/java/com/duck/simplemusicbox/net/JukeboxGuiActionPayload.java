@@ -18,7 +18,9 @@ public record JukeboxGuiActionPayload(BlockPos pos, Action action, String argume
 		TOGGLE_PAUSE,
 		EJECT,
 		TOGGLE_LOOP,
-		DOWNLOAD
+		DOWNLOAD,
+		/** Gasta um Disco Virgem do inventário e entrega o disco gravado da faixa. */
+		RECORD
 	}
 
 	public static final CustomPayload.Id<JukeboxGuiActionPayload> ID =

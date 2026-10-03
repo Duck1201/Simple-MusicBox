@@ -1,5 +1,6 @@
 package com.duck.simplemusicbox.command;
 
+import com.duck.simplemusicbox.ModConfig;
 import com.duck.simplemusicbox.SimpleMusicBox;
 import com.duck.simplemusicbox.audio.DownloadException;
 import com.duck.simplemusicbox.component.TrackData;
@@ -17,6 +18,8 @@ public class MusicCommand {
 	public static void register() {
 		CommandRegistrationCallback.EVENT.register((dispatcher, registryAccess, environment) ->
 				dispatcher.register(CommandManager.literal("music")
+						.requires(source -> source.hasPermissionLevel(
+								Math.clamp(ModConfig.get().musicCommandPermission, 0, 4)))
 						.then(CommandManager.argument("url", StringArgumentType.greedyString())
 								.executes(context -> run(context.getSource(),
 										StringArgumentType.getString(context, "url"))))));
@@ -63,7 +66,7 @@ public class MusicCommand {
 				case INVALID_URL -> Text.translatable("simple_musicbox.command.error.invalid_url");
 				case NOT_FOUND -> Text.translatable("simple_musicbox.command.error.not_found");
 				case TOO_LONG -> Text.translatable("simple_musicbox.command.error.too_long",
-						com.duck.simplemusicbox.ModConfig.get().maxDurationSeconds / 60);
+						ModConfig.get().maxDurationSeconds / 60);
 				case LIVE -> Text.translatable("simple_musicbox.command.error.live");
 				case YOUTUBE_CHANGED -> Text.translatable("simple_musicbox.command.error.youtube_changed");
 				case NO_MATCH -> Text.translatable("simple_musicbox.command.error.no_match");

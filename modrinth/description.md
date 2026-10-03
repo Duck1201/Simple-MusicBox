@@ -12,8 +12,9 @@ Turn any jukebox into a music player. Paste a YouTube or Spotify link, and every
 - **Positional audio for everyone**: players within 64 blocks hear the music; it fades with distance and uses the vanilla "Jukebox/Note Blocks" volume slider. Particles, dancing allays and comparator output work like a vanilla disc.
 - **Join mid-song**: players who walk up while a song is playing hear it from the right point.
 - **Queue and loop**: without loop, the jukebox moves on to the next track in the library like a radio; with loop, it repeats the current track.
-- **Blank Discs**: craft a Blank Disc (4 cobblestone around 1 iron ingot), put it in a jukebox and pick a track to record it. Eject it to get a disc you can carry around or put in another jukebox.
+- **Blank Discs**: craft Blank Discs (4 cobblestone around 1 iron ingot). In any jukebox's menu, every track has a **Record** button that uses one Blank Disc from your inventory and gives you a disc of that song to carry around or put in another jukebox.
 - **No disc duplication**: tracks played from the GUI without a disc are virtual: ejecting or breaking the jukebox just stops the music. Your own discs are never overwritten; switching tracks returns them to your inventory.
+- **Survival-friendly options**: restrict `/music` to operators and require a Blank Disc for every new song downloaded from the jukebox, so music becomes something players craft and collect.
 - **Survives restarts**: if the server restarts while a song is playing, it resumes where it was.
 - **Compact cache**: tracks are stored as Opus (~0.7 MB per minute) with an LRU size limit.
 
@@ -39,7 +40,9 @@ No player data is uploaded anywhere.
 
 | Field | Default | Description |
 |---|---|---|
-| `maxDurationSeconds` | 600 | Longest track accepted |
+| `maxDurationSeconds` | 900 | Longest track accepted (15 min) |
+| `musicCommandPermission` | 0 | (Server) Who can use `/music`: `0` = everyone, `2` = operators only (players then download from the jukebox GUI). The console always can |
+| `requireBlankDiscToDownload` | false | (Server) Downloading from the GUI requires a Blank Disc in your inventory, which gets recorded with the new song, so every new song costs a disc |
 | `audibleRadius` | 64.0 | Radius (blocks) in which players receive the audio |
 | `stereo` | true | (Client) `true` = stereo, volume fades with distance; `false` = mono with full 3D direction like a vanilla disc |
 | `opusBitrate` | 96000 | Bitrate of stored audio (bits/s). `0` keeps LavaPlayer's default output |

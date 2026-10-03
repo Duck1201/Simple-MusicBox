@@ -73,8 +73,8 @@ public abstract class JukeboxBlockEntityMixin implements JukeboxLoopAccess {
 		}
 		BlockPos pos = self.getPos();
 		TrackData track = stack.get(ModComponents.TRACK);
-		if (Discs.isBlank(stack)) {
-			// Disco Virgem não toca: espera a GUI gravar uma faixa nele.
+		if (track == null && Discs.isCustom(stack)) {
+			// Disco do mod sem faixa (só via /give): não há o que tocar
 			JukeboxSessionManager.stop(world, pos);
 			self.getManager().stopPlaying(world, self.getCachedState());
 		} else if (track != null) {

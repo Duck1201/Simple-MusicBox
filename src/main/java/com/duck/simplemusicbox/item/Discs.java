@@ -3,15 +3,18 @@ package com.duck.simplemusicbox.item;
 import com.duck.simplemusicbox.component.ModComponents;
 import com.duck.simplemusicbox.component.TrackData;
 import net.minecraft.component.DataComponentTypes;
+import net.minecraft.entity.player.PlayerEntity;
+import net.minecraft.entity.player.PlayerInventory;
 import net.minecraft.item.ItemStack;
 import net.minecraft.text.Text;
 import net.minecraft.util.Formatting;
 import net.minecraft.util.Unit;
 
 /**
- * Os três estados do disco personalizado:
- * - virgem: sem faixa (craftado); gravá-lo na jukebox gera um disco físico;
- * - físico: com faixa, item normal que o jogador guarda e carrega;
+ * Discos do mod:
+ * - Disco Virgem (item próprio, não toca): o botão Gravar da GUI gasta um e
+ *   entrega um disco físico;
+ * - físico: disco com faixa, item normal que o jogador guarda e carrega;
  * - virtual: com faixa e a marca VIRTUAL, existe só dentro da jukebox.
  */
 public final class Discs {
@@ -23,7 +26,28 @@ public final class Discs {
 	}
 
 	public static boolean isBlank(ItemStack stack) {
-		return isCustom(stack) && !stack.contains(ModComponents.TRACK);
+		return stack.isOf(ModItems.BLANK_DISC);
+	}
+
+	/** Gasta um Disco Virgem do inventário (no criativo não gasta); false se não houver. */
+	public static boolean takeBlank(PlayerEntity player) {
+		if (player.getAbilities().creativeMode) {
+			return true;
+		}
+		PlayerInventory inventory = player.getInventory();
+		for (int slot = 0; slot < inventory.size(); slot++) {
+			ItemStack stack = inventory.getStack(slot);
+			if (isBlank(stack)) {
+				stack.decrement(1);
+				inventory.markDirty();
+				return true;
+			}
+		}
+		return false;
+	}
+
+	public static boolean hasBlank(PlayerEntity player) {
+		return player.getAbilities().creativeMode || player.getInventory().count(ModItems.BLANK_DISC) > 0;
 	}
 
 	public static boolean isVirtual(ItemStack stack) {

@@ -1,5 +1,6 @@
 package com.duck.simplemusicbox.playback;
 
+import com.duck.simplemusicbox.ModConfig;
 import com.duck.simplemusicbox.SimpleMusicBox;
 import com.duck.simplemusicbox.command.MusicCommand;
 import com.duck.simplemusicbox.item.Discs;
@@ -68,12 +69,9 @@ public class JukeboxGuiServer {
 		boolean loop = world.getBlockEntity(pos) instanceof JukeboxLoopAccess access
 				&& access.simple_musicbox$isLoop();
 		Optional<JukeboxSessionManager.SessionInfo> session = JukeboxSessionManager.sessionAt(world, pos);
-		boolean blankDisc = world.getBlockEntity(pos) instanceof JukeboxBlockEntity jukebox
-				&& Discs.isBlank(jukebox.getStack());
 		ServerPlayNetworking.send(player, new JukeboxGuiOpenPayload(
 				pos,
 				loop,
-				blankDisc,
 				session.map(JukeboxSessionManager.SessionInfo::paused).orElse(false),
 				session.map(JukeboxSessionManager.SessionInfo::track),
 				session.map(JukeboxSessionManager.SessionInfo::positionMs).orElse(0L),
@@ -90,6 +88,12 @@ public class JukeboxGuiServer {
 		}
 	}
 
+	private static void giveRecorded(ServerPlayerEntity player, com.duck.simplemusicbox.component.TrackData track) {
+		player.getInventory().offerOrDrop(Discs.recorded(track));
+		player.sendMessage(Text.translatable("simple_musicbox.gui.recorded",
+				Text.literal(track.title()).formatted(Formatting.AQUA)), false);
+	}
+
 	private static void handleAction(ServerPlayerEntity player, JukeboxGuiActionPayload payload) {
 		ServerWorld world = player.getServerWorld();
 		BlockPos pos = payload.pos();
@@ -104,13 +108,8 @@ public class JukeboxGuiServer {
 			case PLAY -> {
 				if (jukebox != null) {
 					SimpleMusicBox.trackCache().readHeader(payload.argument()).ifPresent(track -> {
-						if (Discs.isBlank(jukebox.getStack())) {
-							// Grava o Disco Virgem: vira um disco físico com a faixa
-							jukebox.setStack(Discs.recorded(track));
-						} else {
-							returnPhysicalDisc(player, jukebox);
-							jukebox.setStack(Discs.virtual(track));
-						}
+						returnPhysicalDisc(player, jukebox);
+						jukebox.setStack(Discs.virtual(track));
 					});
 					sendOpen(player, world, pos);
 				}
@@ -155,7 +154,22 @@ public class JukeboxGuiServer {
 					sendOpen(player, world, pos);
 				}
 			}
+			case RECORD -> SimpleMusicBox.trackCache().readHeader(payload.argument()).ifPresent(track -> {
+				if (Discs.takeBlank(player)) {
+					giveRecorded(player, track);
+				} else {
+					player.sendMessage(Text.translatable("simple_musicbox.gui.need_blank_disc")
+							.formatted(Formatting.RED), false);
+				}
+			});
 			case DOWNLOAD -> {
+				// Modo sobrevivência: cada música nova custa um Disco Virgem, e já sai gravada
+				boolean requireBlank = ModConfig.get().requireBlankDiscToDownload;
+				if (requireBlank && !Discs.hasBlank(player)) {
+					player.sendMessage(Text.translatable("simple_musicbox.gui.need_blank_disc")
+							.formatted(Formatting.RED), false);
+					return;
+				}
 				player.sendMessage(Text.translatable("simple_musicbox.command.downloading")
 						.formatted(Formatting.GRAY), false);
 				SimpleMusicBox.downloader().download(payload.argument()).whenComplete((track, error) ->
@@ -167,8 +181,12 @@ public class JukeboxGuiServer {
 										.copy().formatted(Formatting.RED), false);
 								return;
 							}
-							player.sendMessage(Text.translatable("simple_musicbox.command.added",
-									Text.literal(track.title()).formatted(Formatting.AQUA)), false);
+							if (requireBlank && Discs.takeBlank(player)) {
+								giveRecorded(player, track);
+							} else {
+								player.sendMessage(Text.translatable("simple_musicbox.command.added",
+										Text.literal(track.title()).formatted(Formatting.AQUA)), false);
+							}
 							// Atualiza a lista se o jogador ainda estiver por perto
 							if (player.getPos().distanceTo(Vec3d.ofCenter(pos)) <= MAX_USE_DISTANCE
 									&& world.getBlockState(pos).isOf(Blocks.JUKEBOX)) {

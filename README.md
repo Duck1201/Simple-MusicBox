@@ -49,13 +49,20 @@ estendidos e versões ao vivo. Álbuns e playlists não são aceitos.
 
 ## Discos
 
-- **Disco Virgem**: craftado (receita abaixo). Coloque na jukebox, escolha uma faixa na GUI e
-  ele é **gravado**; **Ejetar** devolve o disco com a música, que você guarda e leva para
-  outra jukebox.
+- **Disco Virgem**: craftado (receita abaixo), empilha até 16 e não toca sozinho. Na GUI de
+  qualquer jukebox, cada faixa tem um botão **Gravar**: ele gasta um Disco Virgem do seu
+  inventário e te entrega o disco com a música, que você guarda e leva para outra jukebox. O
+  contador "Discos virgens" no canto da GUI mostra quantos você tem (no criativo, ∞ — gravar
+  não gasta).
 - **Tocar pela GUI sem disco**: a jukebox toca um disco *virtual*, que não vira item —
   ejetar ou quebrar a jukebox só para a música. Assim não dá para duplicar discos.
 - Disco gravado (ou vanilla) na jukebox é seu: trocar de faixa pela GUI o devolve ao seu
   inventário, e ele nunca é substituído pela fila.
+
+Para servidores de sobrevivência, `musicCommandPermission: 2` + `requireBlankDiscToDownload:
+true` fazem os jogadores irem até uma jukebox e gastarem um Disco Virgem para cada música nova
+(a configuração já existente em `config.json` mantém os valores dela; os padrões novos valem
+para instalações novas).
 
 Receita do Disco Virgem (bancada):
 
@@ -70,8 +77,8 @@ Receita do Disco Virgem (bancada):
 Abre uma tela com a faixa atual e barra de progresso ao vivo, botões **Pausar** /
 **Parar** / **Avançar** / **Ejetar** / **Loop**, a lista de todas as faixas do cache do servidor
 (com busca), e um campo para baixar direto por link (YouTube ou Spotify). Clicar numa faixa
-toca na hora — ou grava o Disco Virgem que estiver na jukebox; **Ejetar** entrega o disco
-físico que estiver nela.
+toca na hora; o botão **Gravar** da linha cria um disco dela (gasta um Disco Virgem);
+**Ejetar** entrega o disco físico que estiver na jukebox.
 Também abre pelo chat com `/player` (jukebox mais próxima, raio de 16 blocos).
 
 ## Fila e loop
@@ -86,7 +93,9 @@ Também abre pelo chat com `/player` (jukebox mais próxima, raio de 16 blocos).
 
 | Campo | Padrão | Descrição |
 |---|---|---|
-| `maxDurationSeconds` | 600 | Duração máxima aceita para uma faixa |
+| `maxDurationSeconds` | 900 | Duração máxima aceita para uma faixa (15 min) |
+| `musicCommandPermission` | 0 | (Servidor) Quem pode usar `/music`: `0` = todos, `2` = só operadores (os jogadores baixam pela GUI da jukebox). O console sempre pode |
+| `requireBlankDiscToDownload` | false | (Servidor) Baixar pela GUI exige um Disco Virgem no inventário, que sai gravado com a música — cada música nova custa um disco |
 | `audibleRadius` | 64.0 | Raio (blocos) em que os jogadores recebem o áudio |
 | `networkChunkSize` | 60000 | Tamanho de cada chunk de rede (bytes) |
 | `chunksPerTick` | 8 | Chunks enviados por tick para cada jogador |

@@ -1,6 +1,6 @@
 {
 	"item.simple_musicbox.music_disc_custom": "Custom Music Disc",
-	"item.simple_musicbox.music_disc_custom.empty": "Blank — put it in a jukebox and pick a track to record",
+	"item.simple_musicbox.music_disc_custom.empty": "No track",
 	"jukebox_song.simple_musicbox.custom": "Simple MusicBox",
 	"simple_musicbox.command.downloading": "Downloading track, please wait...",
 	"simple_musicbox.command.added": "Track available in the jukebox: %s",
@@ -28,8 +28,12 @@
 	"simple_musicbox.gui.paused_tag": "paused",
 	"simple_musicbox.loop.enabled": "🔁 Loop enabled",
 	"simple_musicbox.loop.disabled": "Loop disabled",
-	"item.simple_musicbox.music_disc_blank": "Blank Disc",
 	"simple_musicbox.command.error.no_match": "Couldn't find this song on YouTube with a matching length.",
 	"simple_musicbox.command.error.spotify_only_tracks": "Only Spotify track links are supported (not albums or playlists).",
-	"simple_musicbox.gui.blank_disc": "Blank disc: pick a track to record it"
+	"simple_musicbox.gui.need_blank_disc": "You need a Blank Disc in your inventory.",
+	"simple_musicbox.gui.recorded": "Disc recorded: %s",
+	"item.simple_musicbox.blank_disc": "Blank Disc",
+	"item.simple_musicbox.blank_disc.tooltip": "Record a song from a jukebox's menu",
+	"simple_musicbox.gui.record": "Record",
+	"simple_musicbox.gui.blank_count": "Blank discs: %s"
 }

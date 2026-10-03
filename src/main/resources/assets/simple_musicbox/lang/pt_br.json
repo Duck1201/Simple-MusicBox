@@ -1,6 +1,6 @@
 {
 	"item.simple_musicbox.music_disc_custom": "Disco de Música Personalizado",
-	"item.simple_musicbox.music_disc_custom.empty": "Virgem — coloque numa jukebox e escolha uma faixa para gravar",
+	"item.simple_musicbox.music_disc_custom.empty": "Sem faixa",
 	"jukebox_song.simple_musicbox.custom": "Simple MusicBox",
 	"simple_musicbox.command.downloading": "Baixando a música, aguarde...",
 	"simple_musicbox.command.added": "Música disponível na jukebox: %s",
@@ -28,8 +28,12 @@
 	"simple_musicbox.gui.paused_tag": "pausada",
 	"simple_musicbox.loop.enabled": "🔁 Loop ativado",
 	"simple_musicbox.loop.disabled": "Loop desativado",
-	"item.simple_musicbox.music_disc_blank": "Disco Virgem",
 	"simple_musicbox.command.error.no_match": "Não achei essa música no YouTube com uma duração compatível.",
 	"simple_musicbox.command.error.spotify_only_tracks": "Só links de faixa do Spotify são aceitos (não álbuns ou playlists).",
-	"simple_musicbox.gui.blank_disc": "Disco virgem: escolha uma faixa para gravar"
+	"simple_musicbox.gui.need_blank_disc": "Você precisa de um Disco Virgem no inventário.",
+	"simple_musicbox.gui.recorded": "Disco gravado: %s",
+	"item.simple_musicbox.blank_disc": "Disco Virgem",
+	"item.simple_musicbox.blank_disc.tooltip": "Grave uma música pelo menu de uma jukebox",
+	"simple_musicbox.gui.record": "Gravar",
+	"simple_musicbox.gui.blank_count": "Discos virgens: %s"
 }
